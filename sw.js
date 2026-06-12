@@ -1,5 +1,5 @@
 const CACHE = 'gear-vault-v1';
-const ASSETS = ['/', '/index.html', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'];
+const ASSETS = ['/shift-and-shutter/', '/shift-and-shutter/index.html', '/shift-and-shutter/manifest.json', '/shift-and-shutter/icons/icon-192.png', '/shift-and-shutter/icons/icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(

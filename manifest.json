@@ -2,7 +2,7 @@
   "name": "Shift & Shutter — Gear Vault",
   "short_name": "Gear Vault",
   "description": "Photography gear tracker and vault",
-  "start_url": "/",
+  "start_url": "/shift-and-shutter/",
   "display": "standalone",
   "background_color": "#1e1e1e",
   "theme_color": "#c4894e",
