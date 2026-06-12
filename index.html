@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Shift & Shutter — Gear Vault</title>
+
+<!-- PWA -->
+<link rel="manifest" href="/manifest.json"/>
+<meta name="theme-color" content="#c4894e"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Gear Vault"/>
+<link rel="apple-touch-icon" href="/icons/icon-192.png"/>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Bebas+Neue&display=swap');
+
+:root {
+  --bg: #1e1e1e;
+  --s1: #2c2c2c;
+  --s2: #363636;
+  --s3: #404040;
+  --b1: rgba(255,255,255,0.07);
+  --b2: rgba(255,255,255,0.13);
+  --b3: rgba(255,255,255,0.22);
+  --text: #ececec;
+  --mid: #aaaaaa;
+  --dim: #666666;
+  --copper: #c4894e;
+  --copper2: #d9a86e;
+  --danger: #8b3a3a;
+  --doc-bg: #f8f8f8;
+  --doc-text: #1a1a1a;
+  --doc-mid: #555;
+  --doc-border: #e0e0e0;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { min-height: 100vh; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- Carbon fiber with depth + fade ---- */
+.carbon {
+  position: relative;
+  background-color: #1a1a1a;
+  background-image:
+    repeating-linear-gradient(
+      135deg,
+      transparent 0px, transparent 2px,
+      rgba(255,255,255,0.025) 2px, rgba(255,255,255,0.025) 3px,
+      transparent 3px, transparent 5px,
+      rgba(0,0,0,0.3) 5px, rgba(0,0,0,0.3) 6px
+    ),
+    repeating-linear-gradient(
+      45deg,
+      transparent 0px, transparent 2px,
+      rgba(255,255,255,0.025) 2px, rgba(255,255,255,0.025) 3px,
+      transparent 3px, transparent 5px,
+      rgba(0,0,0,0.3) 5px, rgba(0,0,0,0.3) 6px
+    ),
+    repeating-linear-gradient(
+      135deg,
+      rgba(255,255,255,0.008) 0px, rgba(255,255,255,0.008) 6px,
+      transparent 6px, transparent 12px
+    );
+  background-size: 6px 6px, 6px 6px, 12px 12px;
+}
+.carbon::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.04) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0.5) 0%, transparent 60%),
+    radial-gradient(ellipse at 0% 50%, rgba(0,0,0,0.2) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 50%, rgba(0,0,0,0.2) 0%, transparent 50%);
+}
+#topbar, #stats, #bc, #back-btn, #page, #detail { position: relative; z-index: 1; }
+
+/* ---- Topbar ---- */
+#topbar {
+  height: 50px;
+  background: linear-gradient(180deg, #323232 0%, #282828 100%);
+  border-bottom: 1px solid rgba(0,0,0,0.5);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 22px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+#topbar-left { display: flex; align-items: baseline; gap: 10px; }
+#logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  letter-spacing: 3px;
+  color: var(--copper);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+#logo-sub { font-size: 9px; letter-spacing: 3px; color: var(--dim); text-transform: uppercase; }
+
+/* ---- Stats ---- */
+#stats {
+  display: flex;
+  background: linear-gradient(180deg, #262626 0%, #222222 100%);
+  border-bottom: 1px solid rgba(0,0,0,0.4);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.04);
+}
+.stat {
+  padding: 11px 22px;
+  border-right: 1px solid rgba(255,255,255,0.06);
+  display: flex; align-items: baseline; gap: 7px;
+}
+.stat-n { font-size: 18px; font-weight: 400; color: var(--text); letter-spacing: -0.3px; }
+.stat-l { font-size: 9px; letter-spacing: 1.5px; color: var(--dim); text-transform: uppercase; }
+
+/* ---- Breadcrumb ---- */
+#bc {
+  padding: 14px 22px 0;
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10px; color: var(--dim); letter-spacing: .5px;
+}
+#bc span { cursor: pointer; transition: color .15s; }
+#bc span:hover { color: var(--copper); }
+#bc .sep { color: var(--dim); cursor: default; }
+#bc .cur { color: var(--mid); }
+
+/* ---- Back btn ---- */
+#back-btn {
+  background: none; border: none; color: var(--dim);
+  font-size: 11px; font-family: inherit;
+  padding: 10px 22px 0; cursor: pointer;
+  display: none; align-items: center; gap: 5px;
+  transition: color .15s; letter-spacing: .3px;
+}
+#back-btn:hover { color: var(--mid); }
+#back-btn.show { display: flex; }
+
+/* ---- Page / grid ---- */
+#page { padding: 18px 22px; }
+.page-title { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+.page-sub { font-size: 10px; color: var(--dim); letter-spacing: .5px; margin-bottom: 16px; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(142px, 1fr));
+  gap: 8px;
+}
+
+/* ---- Card ---- */
+.card {
+  background: linear-gradient(160deg, #333333 0%, #2a2a2a 100%);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid rgba(0,0,0,0.4);
+  border-radius: 10px;
+  padding: 14px;
+  cursor: pointer;
+  display: flex; flex-direction: column; gap: 9px;
+  min-height: 88px;
+  position: relative; overflow: hidden;
+  transition: background .15s, border-color .15s, transform .1s;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.07);
+}
+.card::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 40%;
+  background: linear-gradient(0deg, rgba(0,0,0,0.15) 0%, transparent 100%);
+  pointer-events: none;
+  border-radius: 0 0 10px 10px;
+}
+.card:hover {
+  background: linear-gradient(160deg, #3a3a3a 0%, #303030 100%);
+  border-color: rgba(255,255,255,0.13);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.09);
+}
+.card-row { display: flex; align-items: center; gap: 9px; }
+.c-icon {
+  width: 30px; height: 30px;
+  border-radius: 7px;
+  background: linear-gradient(160deg, #444 0%, #333 100%);
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 1px 3px rgba(0,0,0,0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; overflow: hidden; flex-shrink: 0; cursor: pointer;
+  transition: border-color .12s;
+}
+.c-icon:hover { border-color: rgba(255,255,255,0.2); }
+.c-icon img { width: 100%; height: 100%; object-fit: contain; }
+.c-name { font-size: 12px; font-weight: 400; color: var(--text); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.c-sub { font-size: 10px; color: var(--dim); display: flex; align-items: center; gap: 4px; margin-top: 1px; }
+.dot { width: 4px; height: 4px; border-radius: 50%; background: var(--copper); opacity: .7; display: inline-block; flex-shrink: 0; }
+.dot.w { background: var(--dim); opacity: 1; }
+.c-cost { font-size: 10px; color: var(--dim); padding-left: 39px; }
+
+.card-add {
+  background: transparent;
+  border: 1px dashed rgba(255,255,255,0.1);
+  box-shadow: none;
+  align-items: center; justify-content: center;
+  gap: 5px; min-height: 72px;
+  color: var(--dim); flex-direction: row;
+}
+.card-add::after { display: none; }
+.card-add:hover {
+  border-color: rgba(196,137,78,0.3);
+  color: var(--copper);
+  background: rgba(196,137,78,0.03);
+  transform: none;
+  box-shadow: none;
+}
+.add-plus { font-size: 18px; font-weight: 300; line-height: 1; }
+.add-lbl { font-size: 10px; letter-spacing: .5px; }
+
+/* ---- DETAIL — open dark doc ---- */
+#detail { display: none; background: #1e1e1e; min-height: 100vh; }
+
+.doc-topbar {
+  height: 44px;
+  background: linear-gradient(180deg, #2e2e2e 0%, #282828 100%);
+  border-bottom: 1px solid rgba(0,0,0,0.5);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.05);
+  display: flex; align-items: center; gap: 0;
+  padding: 0 8px; position: sticky; top: 0; z-index: 50;
+  flex-wrap: wrap;
+}
+.doc-tb-group { display: flex; align-items: center; gap: 1px; padding: 0 4px; border-right: 1px solid rgba(255,255,255,0.06); }
+.doc-tb-group:last-child { border-right: none; }
+.dtb {
+  background: none; border: none; color: #777;
+  border-radius: 4px; padding: 5px 8px; font-size: 11px;
+  font-family: inherit; cursor: pointer; line-height: 1;
+  transition: background .1s, color .1s; white-space: nowrap;
+}
+.dtb:hover { background: rgba(255,255,255,0.07); color: #ccc; }
+.dtb.on { background: rgba(196,137,78,0.12); color: var(--copper); }
+.dtb-img { cursor: pointer; }
+
+/* Canvas — dark page floating on darker bg */
+.doc-canvas-wrap {
+  background: #181818;
+  padding: 28px 16px 80px;
+  min-height: calc(100vh - 44px);
+}
+.doc-canvas {
+  background: #242424;
+  max-width: 780px; margin: 0 auto;
+  border-radius: 4px;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+}
+
+/* Header */
+.doc-header {
+  padding: 36px 52px 22px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.doc-item-top { display: flex; gap: 20px; align-items: flex-start; margin-bottom: 18px; }
+.doc-photo {
+  width: 88px; height: 88px; border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: #1e1e1e;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; overflow: hidden; position: relative;
+  flex-shrink: 0; transition: border-color .15s;
+}
+.doc-photo:hover { border-color: rgba(255,255,255,0.2); }
+.doc-photo img { width: 100%; height: 100%; object-fit: contain; }
+.doc-photo-hint { font-size: 10px; color: #555; text-align: center; line-height: 1.6; padding: 6px; }
+.doc-photo-ov {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity .15s; font-size: 10px; color: #aaa;
+}
+.doc-photo:hover .doc-photo-ov { opacity: 1; }
+
+.doc-title-area { flex: 1; min-width: 0; }
+#d-name {
+  font-size: 28px; font-weight: 300; color: #e8e8e8;
+  background: transparent; border: none; outline: none; width: 100%;
+  border-bottom: 1px solid transparent; padding-bottom: 5px;
+  font-family: inherit; letter-spacing: -.4px;
+  transition: border-color .15s; line-height: 1.2; margin-bottom: 14px;
+}
+#d-name:focus { border-color: rgba(196,137,78,0.4); }
+#d-name::placeholder { color: #444; }
+
+.doc-fields { display: flex; gap: 10px; flex-wrap: wrap; }
+.doc-field { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 90px; }
+.doc-fl { font-size: 9px; color: #555; letter-spacing: 1.5px; text-transform: uppercase; }
+.doc-fi {
+  background: #1e1e1e; border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px; color: #ccc; font-size: 12px;
+  padding: 6px 9px; outline: none; width: 100%;
+  font-family: inherit; transition: border-color .15s; -webkit-appearance: none;
+}
+.doc-fi:focus { border-color: rgba(196,137,78,0.35); }
+select.doc-fi { cursor: pointer; }
+select.doc-fi option { background: #2a2a2a; }
+
+.doc-icon-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.doc-icon-thumb {
+  width: 26px; height: 26px; border-radius: 6px;
+  background: #1e1e1e; border: 1px solid rgba(255,255,255,0.1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; overflow: hidden; cursor: pointer; transition: border-color .15s;
+}
+.doc-icon-thumb:hover { border-color: rgba(255,255,255,0.2); }
+.doc-icon-thumb img { width: 100%; height: 100%; object-fit: contain; }
+.doc-icon-lbl { font-size: 10px; color: #555; }
+
+/* Open writing body */
+.doc-body { padding: 36px 52px 52px; }
+
+/* The free-form editor — primary space */
+.doc-notes-editor {
+  outline: none; min-height: 300px;
+  color: #d8d8d8; font-size: 14px; line-height: 1.9;
+  font-family: inherit; caret-color: var(--copper);
+  margin-bottom: 40px;
+}
+.doc-notes-editor:empty::before { content: attr(data-ph); color: #3a3a3a; pointer-events: none; }
+.doc-notes-editor h1 { font-size: 22px; font-weight: 400; margin: 14px 0 6px; color: #eee; letter-spacing: -.3px; }
+.doc-notes-editor h2 { font-size: 17px; font-weight: 400; margin: 12px 0 5px; color: #ddd; }
+.doc-notes-editor h3 { font-size: 14px; font-weight: 500; margin: 10px 0 4px; color: #bbb; }
+.doc-notes-editor ul, .doc-notes-editor ol { padding-left: 22px; margin: 6px 0; }
+.doc-notes-editor li { margin: 3px 0; color: #ccc; }
+.doc-notes-editor blockquote { border-left: 2px solid var(--copper); padding-left: 14px; color: #888; margin: 10px 0; border-radius: 0; font-style: italic; }
+.doc-notes-editor img { max-width: 100%; border-radius: 6px; margin: 10px 0; display: block; }
+.doc-notes-editor hr { border: none; border-top: 1px solid rgba(255,255,255,0.07); margin: 16px 0; }
+.doc-notes-editor a { color: var(--copper); }
+.doc-notes-editor b, .doc-notes-editor strong { color: #eee; font-weight: 600; }
+
+/* Collapsible side-sections */
+.doc-section { margin-bottom: 24px; }
+.doc-sec-title {
+  font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+  color: #444; margin-bottom: 10px;
+  padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.05);
+  cursor: pointer; transition: color .15s; user-select: none;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.doc-sec-title:hover { color: #777; }
+
+.doc-specs { width: 100%; border-collapse: collapse; }
+.doc-specs tr { border-bottom: 1px solid rgba(255,255,255,0.04); }
+.doc-specs td { padding: 7px 6px; font-size: 13px; }
+.doc-specs td:first-child { color: #666; width: 38%; font-size: 12px; }
+.dsi {
+  background: transparent; border: none; color: #ccc;
+  font-size: 13px; font-family: inherit; outline: none; width: 100%;
+}
+.dsi::placeholder { color: #3a3a3a; }
+.dsi:focus { color: var(--copper2); }
+.dxb { background: none; border: none; color: #3a3a3a; font-size: 14px; padding: 0 2px; cursor: pointer; line-height: 1; transition: color .1s; }
+.dxb:hover { color: #a04040; }
+
+.doc-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.doc-tag {
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px; font-size: 11px; padding: 3px 10px; color: #777;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.dtx { background: none; border: none; color: #444; font-size: 12px; cursor: pointer; padding: 0; transition: color .1s; }
+.dtx:hover { color: #a04040; }
+#tag-input {
+  background: transparent; border: none;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  color: #ccc; font-size: 11px; font-family: inherit;
+  padding: 2px 4px; outline: none; width: 90px;
+}
+#tag-input::placeholder { color: #3a3a3a; }
+
+.doc-prow, .doc-lrow {
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 7px; padding: 9px 12px;
+  display: flex; align-items: flex-start;
+  justify-content: space-between; gap: 8px; margin-bottom: 5px;
+}
+.doc-pn { font-size: 12px; font-weight: 500; color: #ccc; }
+.doc-pd, .doc-lu { font-size: 11px; color: #555; margin-top: 1px; }
+.doc-la { color: var(--copper); font-size: 12px; text-decoration: none; }
+.doc-la:hover { text-decoration: underline; }
+
+.doc-add-row { display: flex; gap: 7px; margin-top: 8px; flex-wrap: wrap; }
+.doc-add-fi {
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px; color: #ccc; font-size: 12px;
+  padding: 6px 9px; outline: none; font-family: inherit;
+  transition: border-color .15s;
+}
+.doc-add-fi:focus { border-color: rgba(196,137,78,0.35); }
+.doc-add-btn {
+  background: none; border: 1px solid rgba(255,255,255,0.1);
+  color: #666; font-size: 11px; font-family: inherit;
+  padding: 6px 12px; border-radius: 6px; cursor: pointer; transition: all .15s;
+}
+.doc-add-btn:hover { border-color: rgba(196,137,78,0.3); color: var(--copper); }
+.doc-rem-btn {
+  background: none; border: 1px solid rgba(255,255,255,0.06);
+  color: #555; font-size: 10px; font-family: inherit;
+  padding: 3px 9px; border-radius: 5px; cursor: pointer;
+  transition: all .15s; flex-shrink: 0;
+}
+.doc-rem-btn:hover { border-color: rgba(160,64,64,.4); color: #a06060; }
+
+/* Doc actions */
+.doc-actions {
+  background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.05);
+  padding: 12px 52px; display: flex; gap: 8px;
+}
+.doc-btn {
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  color: #888; font-size: 12px; font-family: inherit;
+  padding: 7px 16px; border-radius: 6px; cursor: pointer;
+  transition: all .15s; letter-spacing: .2px;
+}
+.doc-btn:hover { border-color: rgba(255,255,255,0.18); color: #ccc; }
+.doc-btn-save { background: rgba(196,137,78,.15); border-color: rgba(196,137,78,.3); color: var(--copper); }
+.doc-btn-save:hover { background: rgba(196,137,78,.25); color: var(--copper2); }
+.doc-btn-del { border-color: rgba(160,64,64,.2); color: #7a4040; }
+.doc-btn-del:hover { border-color: rgba(160,64,64,.5); color: #c06060; background: rgba(160,64,64,.08); }
+
+/* ---- Toast ---- */
+#toast {
+  position: fixed; bottom: 18px; right: 18px;
+  background: #2c2c2c; border: 1px solid rgba(196,137,78,.2);
+  border-radius: 7px; padding: 7px 14px;
+  font-size: 10px; color: #aaa; letter-spacing: .5px;
+  opacity: 0; transform: translateY(6px);
+  transition: opacity .2s, transform .2s;
+  pointer-events: none; z-index: 999;
+}
+#toast.show { opacity: 1; transform: translateY(0); }
+
+/* ---- Modal ---- */
+#modal-wrap {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.75);
+  display: none; align-items: center; justify-content: center;
+  z-index: 200; padding: 20px;
+}
+#modal-wrap.show { display: flex; }
+#modal {
+  background: #2c2c2c; border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 12px; padding: 22px;
+  width: 100%; max-width: 360px;
+}
+.mt { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 14px; }
+.mf { margin-bottom: 11px; }
+.ml { font-size: 9px; color: var(--dim); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 4px; }
+.mi {
+  background: #363636; border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 7px; color: var(--text);
+  font-size: 12px; font-family: inherit;
+  padding: 7px 10px; outline: none; width: 100%;
+  -webkit-appearance: none; transition: border-color .15s;
+}
+.mi:focus { border-color: rgba(196,137,78,.4); }
+.mbtn {
+  background: #404040; border: 1px solid rgba(255,255,255,0.12);
+  color: #aaa; font-size: 11px; font-family: inherit;
+  padding: 7px 16px; border-radius: 7px; cursor: pointer;
+  transition: all .15s;
+}
+.mbtn:hover { border-color: rgba(255,255,255,0.22); color: var(--text); }
+.mbtn-c { background: rgba(196,137,78,.12); border-color: rgba(196,137,78,.25); color: var(--copper); }
+.mbtn-c:hover { background: rgba(196,137,78,.2); color: var(--copper2); }
+
+input[type=file] { display: none; }
+
+/* ---- Context menu ---- */
+#ctx-menu {
+  position: fixed;
+  background: linear-gradient(160deg, #363636, #2e2e2e);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 9px; padding: 5px;
+  min-width: 160px; z-index: 500; display: none;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.55);
+}
+#ctx-menu.show { display: block; }
+.ctx-item {
+  padding: 8px 12px; font-size: 12px; color: #aaa;
+  border-radius: 6px; cursor: pointer;
+  display: flex; align-items: center; gap: 8px;
+  transition: background .1s, color .1s; letter-spacing: .2px;
+}
+.ctx-item:hover { background: rgba(255,255,255,0.07); color: var(--text); }
+.ctx-item.danger:hover { background: rgba(139,58,58,.15); color: #c06060; }
+.ctx-sep { height: 1px; background: rgba(255,255,255,0.06); margin: 4px 0; }
+</style>
+</head>
+<body class="carbon">
+
+<div id="topbar">
+  <div id="topbar-left">
+    <span id="logo">Shift &amp; Shutter</span>
+    <span id="logo-sub">Gear Vault</span>
+  </div>
+</div>
+
+<div id="stats">
+  <div class="stat"><span class="stat-n" id="s-owned">0</span><span class="stat-l">Owned</span></div>
+  <div class="stat"><span class="stat-n" id="s-wish">0</span><span class="stat-l">Wishlist</span></div>
+  <div class="stat"><span class="stat-n" id="s-cost">$0</span><span class="stat-l">Invested</span></div>
+</div>
+
+<div id="bc"></div>
+<button id="back-btn">← <span id="back-label">Home</span></button>
+<div id="page"></div>
+
+<!-- Google Docs-style item detail -->
+<div id="detail">
+  <div class="doc-topbar" id="doc-topbar">
+    <div class="doc-tb-group">
+      <button class="dtb" data-cmd="bold"><b>B</b></button>
+      <button class="dtb" data-cmd="italic"><i>I</i></button>
+      <button class="dtb" data-cmd="underline"><u>U</u></button>
+    </div>
+    <div class="doc-tb-group">
+      <button class="dtb" data-cmd="h1">H1</button>
+      <button class="dtb" data-cmd="h2">H2</button>
+      <button class="dtb" data-cmd="h3">H3</button>
+    </div>
+    <div class="doc-tb-group">
+      <button class="dtb" data-cmd="ul">• List</button>
+      <button class="dtb" data-cmd="ol">1. List</button>
+      <button class="dtb" data-cmd="quote">Quote</button>
+    </div>
+    <div class="doc-tb-group">
+      <label class="dtb dtb-img" style="cursor:pointer">
+        <input type="file" id="doc-img-input" accept="image/*"/>Image
+      </label>
+      <button class="dtb" data-cmd="clear">Clear</button>
+    </div>
+  </div>
+
+  <div class="doc-canvas-wrap">
+    <div class="doc-canvas">
+      <!-- Header: name, photo, meta -->
+      <div class="doc-header">
+        <div class="doc-item-top">
+          <label>
+            <input type="file" id="photo-input" accept="image/*"/>
+            <div class="doc-photo" id="d-photo">
+              <div class="doc-photo-hint">Add<br/>photo</div>
+              <div class="doc-photo-ov">Change</div>
+            </div>
+          </label>
+          <div class="doc-title-area">
+            <input id="d-name" placeholder="Item name" autocomplete="off"/>
+            <div class="doc-fields">
+              <div class="doc-field">
+                <div class="doc-fl">Status</div>
+                <select class="doc-fi" id="d-status">
+                  <option>Owned</option>
+                  <option>Rented</option>
+                  <option>Wishlist</option>
+                  <option>Sold</option>
+                </select>
+              </div>
+              <div class="doc-field">
+                <div class="doc-fl">Cost ($)</div>
+                <input class="doc-fi" id="d-cost" type="number" placeholder="0"/>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="doc-icon-row">
+          <label style="cursor:pointer">
+            <input type="file" id="icon-input" accept="image/*"/>
+            <div class="doc-icon-thumb" id="icon-thumb"><span id="icon-emoji">📦</span></div>
+          </label>
+          <span class="doc-icon-lbl">Card icon — tap to change</span>
+        </div>
+      </div>
+
+      <!-- Body: notes, specs, tags, presets, links -->
+      <div class="doc-body">
+
+        <div class="doc-section">
+          <div class="doc-sec-title">Notes</div>
+          <div class="doc-notes-editor" id="doc-editor" contenteditable="true" data-ph="Start writing — notes, impressions, settings, tips…"></div>
+        </div>
+
+        <div class="doc-section">
+          <div class="doc-sec-title">Specs</div>
+          <table class="doc-specs">
+            <tbody id="specs-body"></tbody>
+          </table>
+        </div>
+
+        <div class="doc-section">
+          <div class="doc-sec-title">Tags</div>
+          <div class="doc-tags" id="tags-container">
+            <input id="tag-input" placeholder="Add tag…"/>
+          </div>
+        </div>
+
+        <div class="doc-section">
+          <div class="doc-sec-title">Presets &amp; Settings</div>
+          <div id="presets-list"></div>
+          <div class="doc-add-row">
+            <input class="doc-add-fi" id="pre-name" placeholder="Preset name" style="flex:1;min-width:80px"/>
+            <input class="doc-add-fi" id="pre-desc" placeholder="Description (optional)" style="flex:2;min-width:120px"/>
+            <button class="doc-add-btn" onclick="addPreset()">Add</button>
+          </div>
+        </div>
+
+        <div class="doc-section">
+          <div class="doc-sec-title">Links &amp; Resources</div>
+          <div id="links-list"></div>
+          <div class="doc-add-row">
+            <input class="doc-add-fi" id="link-label" placeholder="Label" style="flex:1;min-width:70px"/>
+            <input class="doc-add-fi" id="link-url" placeholder="https://…" style="flex:2;min-width:130px"/>
+            <button class="doc-add-btn" onclick="addLink()">Add</button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="doc-actions">
+        <button class="doc-btn doc-btn-save" onclick="saveItem()">Save</button>
+        <button class="doc-btn doc-btn-del" onclick="deleteItem()">Delete item</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="modal-wrap">
+  <div id="modal">
+    <div class="mt" id="modal-title">New item</div>
+    <div id="modal-body"></div>
+    <div style="display:flex;gap:7px;margin-top:4px">
+      <button class="mbtn mbtn-c" onclick="modalSubmit()">Add</button>
+      <button class="mbtn" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<div id="ctx-menu">
+  <div class="ctx-item" onclick="ctxRename()">✏️ Rename</div>
+  <div class="ctx-item" onclick="ctxChangeIcon()">🖼 Change icon</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item danger" id="ctx-delete" onclick="ctxDelete()">🗑 Delete</div>
+</div>
+
+<input type="file" id="hidden-img" accept="image/*" style="display:none"/>
+
+<script>
+const DEFAULT = {
+  directories: [
+    {id:"gear",name:"Gear",icon:null,emoji:"📷",children:["cameras","lenses","filters","gimbals","microphones","lighting","tripods","bags","misc"]},
+    {id:"software",name:"Software",icon:null,emoji:"💻",children:["editing","design","utilities"]},
+    {id:"wishlist",name:"Wishlist",icon:null,emoji:"⭐",children:[]},
+  ],
+  categories: [
+    {id:"cameras",name:"Cameras",parentId:"gear",icon:null,emoji:"📷"},
+    {id:"lenses",name:"Lenses",parentId:"gear",icon:null,emoji:"🔭"},
+    {id:"filters",name:"Filters",parentId:"gear",icon:null,emoji:"🔲"},
+    {id:"gimbals",name:"Gimbals",parentId:"gear",icon:null,emoji:"🎬"},
+    {id:"microphones",name:"Microphones",parentId:"gear",icon:null,emoji:"🎙️"},
+    {id:"lighting",name:"Lighting",parentId:"gear",icon:null,emoji:"💡"},
+    {id:"tripods",name:"Tripods",parentId:"gear",icon:null,emoji:"📐"},
+    {id:"bags",name:"Bags",parentId:"gear",icon:null,emoji:"🎒"},
+    {id:"misc",name:"Misc",parentId:"gear",icon:null,emoji:"🔧"},
+    {id:"editing",name:"Editing",parentId:"software",icon:null,emoji:"✂️"},
+    {id:"design",name:"Design",parentId:"software",icon:null,emoji:"🎨"},
+    {id:"utilities",name:"Utilities",parentId:"software",icon:null,emoji:"⚙️"},
+  ],
+  items:[
+    {id:"i1",name:"Canon EOS R50",categoryId:"cameras",status:"Owned",wishlist:false,cost:679,image:null,icon:null,notes:"<p>Primary body. APS-C 24.2MP mirrorless.</p>",specs:[{key:"Sensor",value:"APS-C 24.2MP"},{key:"Mount",value:"RF-S"},{key:"Video",value:"4K 30fps"}],tags:["Canon","Mirrorless"],links:[],presets:[]},
+    {id:"i2",name:"Kit 18-45mm",categoryId:"lenses",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[{key:"Focal",value:"18-45mm"},{key:"Aperture",value:"f/4.5-6.3"}],tags:["Canon","Kit"],links:[],presets:[]},
+    {id:"i3",name:"50mm Prime",categoryId:"lenses",status:"Owned",wishlist:false,cost:249,image:null,icon:null,notes:"",specs:[{key:"Focal",value:"50mm"},{key:"Mount",value:"RF"}],tags:["Canon","Prime"],links:[],presets:[]},
+    {id:"i4",name:"100-400mm",categoryId:"lenses",status:"Owned",wishlist:false,cost:649,image:null,icon:null,notes:"",specs:[{key:"Focal",value:"100-400mm"}],tags:["Canon","Telephoto"],links:[],presets:[]},
+    {id:"i5",name:"CPL Filter",categoryId:"filters",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[],tags:[],links:[],presets:[]},
+    {id:"i6",name:"ND-9 Filter",categoryId:"filters",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[],tags:[],links:[],presets:[]},
+    {id:"i7",name:"RS 5",categoryId:"gimbals",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[],tags:["DJI"],links:[],presets:[]},
+    {id:"s1",name:"Lightroom",categoryId:"editing",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[],tags:["Adobe"],links:[],presets:[]},
+    {id:"s2",name:"Photoshop",categoryId:"editing",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[],tags:["Adobe"],links:[],presets:[]},
+    {id:"s3",name:"Premiere Pro",categoryId:"editing",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[],tags:["Adobe"],links:[],presets:[]},
+    {id:"s4",name:"After Effects",categoryId:"editing",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[],tags:["Adobe"],links:[],presets:[]},
+    {id:"s5",name:"Illustrator",categoryId:"design",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[],tags:["Adobe"],links:[],presets:[]},
+    {id:"s6",name:"Canva",categoryId:"design",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[],tags:[],links:[],presets:[]},
+  ]
+};
+
+let data = (()=>{ try{const s=localStorage.getItem("ss-v5");return s?JSON.parse(s):JSON.parse(JSON.stringify(DEFAULT))}catch{return JSON.parse(JSON.stringify(DEFAULT))} })();
+let currentView={type:"home"};
+let currentItemId=null;
+let modalContext=null;
+
+function persist(){try{localStorage.setItem("ss-v5",JSON.stringify(data))}catch{}}
+function uid(){return"x"+Math.random().toString(36).slice(2,8)}
+
+function toast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.classList.add("show");
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1800);
+}
+
+function updateStats(){
+  const owned=data.items.filter(i=>!i.wishlist).length;
+  const wish=data.items.filter(i=>i.wishlist).length;
+  const cost=data.items.filter(i=>!i.wishlist).reduce((s,i)=>s+(Number(i.cost)||0),0);
+  document.getElementById("s-owned").textContent=owned;
+  document.getElementById("s-wish").textContent=wish;
+  document.getElementById("s-cost").textContent="$"+cost.toLocaleString();
+}
+
+function navigate(view){
+  currentView=view;
+  document.getElementById("page").style.display="block";
+  document.getElementById("detail").style.display="none";
+  document.getElementById("bc").style.display="flex";
+  const bb=document.getElementById("back-btn");
+  if(view.type==="home"){
+    bb.classList.remove("show"); renderHome(); renderBc([]);
+  } else {
+    bb.classList.add("show");
+    const parent=getParent(view.id);
+    document.getElementById("back-label").textContent=parent?parent.name:"Home";
+    bb.onclick=()=>navigate(parent?{type:"cat",id:parent.id}:{type:"home"});
+    renderCat(view.id); renderBc(getBcChain(view.id));
+  }
+}
+
+function getParent(id){
+  const cat=data.categories.find(c=>c.id===id);
+  if(!cat)return null;
+  return data.directories.find(d=>d.id===cat.parentId)||data.categories.find(c=>c.id===cat.parentId);
+}
+function getBcChain(id){
+  const chain=[];
+  let cur=data.directories.find(d=>d.id===id)||data.categories.find(c=>c.id===id);
+  while(cur){chain.unshift(cur);cur=getParent(cur.id);}
+  return chain;
+}
+function renderBc(chain){
+  const bc=document.getElementById("bc");
+  let h='<span onclick="navigate({type:\'home\'})">Home</span>';
+  chain.forEach((node,i)=>{
+    h+='<span class="sep"> / </span>';
+    h+=i<chain.length-1
+      ?`<span onclick="navigate({type:'cat',id:'${node.id}'})">${node.name}</span>`
+      :`<span class="cur">${node.name}</span>`;
+  });
+  bc.innerHTML=h;
+}
+
+function renderHome(){
+  const pg=document.getElementById("page");
+  let h='<div class="page-title">Directories</div><div class="page-sub">Your gear, software &amp; wishlist</div><div class="grid">';
+  data.directories.forEach(dir=>{
+    const ic=dir.icon?`<img src="${dir.icon}" alt=""/>`:`<span style="font-size:15px">${dir.emoji}</span>`;
+    h+=`<div class="card" oncontextmenu="showCtx(event,'dir','${dir.id}')">
+      <div class="card-row">
+        <div class="c-icon" onclick="uploadDirIcon(event,'${dir.id}')">${ic}</div>
+        <div style="flex:1;cursor:pointer;min-width:0" onclick="navigate({type:'cat',id:'${dir.id}'})">
+          <div class="c-name">${dir.name}</div>
+          <div class="c-sub">${dir.children.length} categories</div>
+        </div>
+      </div></div>`;
+  });
+  h+=`<div class="card card-add" onclick="openModal('addDir',null)"><span class="add-plus">+</span><span class="add-lbl">New directory</span></div></div>`;
+  pg.innerHTML=h;
+}
+
+function uploadDirIcon(e,id){
+  e.stopPropagation();
+  const inp=document.getElementById("hidden-img");
+  inp.onchange=ev=>{
+    const f=ev.target.files?.[0];if(!f)return;
+    const r=new FileReader();
+    r.onload=ev2=>{data.directories=data.directories.map(d=>d.id===id?{...d,icon:ev2.target.result}:d);persist();renderHome();toast("Icon updated")};
+    r.readAsDataURL(f);inp.value="";
+  };inp.click();
+}
+
+function renderCat(id){
+  const pg=document.getElementById("page");
+  const dir=data.directories.find(d=>d.id===id);
+  const cat=data.categories.find(c=>c.id===id);
+  const isDir=!!dir; const cur=dir||cat; if(!cur)return;
+  const children=isDir?data.categories.filter(c=>c.parentId===id):data.items.filter(i=>i.categoryId===id);
+  let h=`<div class="page-title">${cur.name}</div><div class="page-sub">${children.length} ${isDir?"categories":"items"}</div><div class="grid">`;
+  if(isDir){
+    children.forEach(c=>{
+      const cnt=data.items.filter(i=>i.categoryId===c.id).length;
+      const ic=c.icon?`<img src="${c.icon}" alt=""/>`:`<span style="font-size:14px">${c.emoji}</span>`;
+      h+=`<div class="card" oncontextmenu="showCtx(event,'cat','${c.id}')">
+        <div class="card-row">
+          <div class="c-icon" onclick="uploadCatIcon(event,'${c.id}')">${ic}</div>
+          <div style="flex:1;cursor:pointer;min-width:0" onclick="navigate({type:'cat',id:'${c.id}'})">
+            <div class="c-name">${c.name}</div>
+            <div class="c-sub">${cnt} ${cnt===1?"item":"items"}</div>
+          </div>
+        </div></div>`;
+    });
+  } else {
+    children.forEach(item=>{
+      const is=item.icon||item.image;
+      const ic=is?`<img src="${is}" alt=""/>`:`<span style="font-size:14px">${cat?.emoji||"📦"}</span>`;
+      const dc=item.wishlist?"dot w":"dot";
+      const sl=item.wishlist?"Wishlist":(item.status||"Owned");
+      const ch=item.cost>0?`<div class="c-cost">$${Number(item.cost).toLocaleString()}</div>`:"";
+      h+=`<div class="card" style="gap:8px" oncontextmenu="showCtx(event,'item','${item.id}')">
+        <div class="card-row">
+          <div class="c-icon" onclick="uploadItemIcon(event,'${item.id}')">${ic}</div>
+          <div style="flex:1;cursor:pointer;min-width:0" onclick="openItem('${item.id}')">
+            <div class="c-name" style="font-size:12px">${item.name}</div>
+            <div class="c-sub"><span class="${dc}"></span>${sl}</div>
+          </div>
+        </div>${ch}</div>`;
+    });
+  }
+  h+=`<div class="card card-add" onclick="openModal('${isDir?"addCat":"addItem"}','${id}')"><span class="add-plus">+</span><span class="add-lbl">${isDir?"New category":"New item"}</span></div></div>`;
+  pg.innerHTML=h;
+}
+
+function uploadCatIcon(e,id){
+  e.stopPropagation();
+  const inp=document.getElementById("hidden-img");
+  inp.onchange=ev=>{
+    const f=ev.target.files?.[0];if(!f)return;
+    const r=new FileReader();
+    r.onload=ev2=>{data.categories=data.categories.map(c=>c.id===id?{...c,icon:ev2.target.result}:c);persist();renderCat(currentView.id);toast("Icon updated")};
+    r.readAsDataURL(f);inp.value="";
+  };inp.click();
+}
+function uploadItemIcon(e,id){
+  e.stopPropagation();
+  const inp=document.getElementById("hidden-img");
+  inp.onchange=ev=>{
+    const f=ev.target.files?.[0];if(!f)return;
+    const r=new FileReader();
+    r.onload=ev2=>{data.items=data.items.map(i=>i.id===id?{...i,icon:ev2.target.result}:i);persist();renderCat(currentView.id);toast("Icon updated")};
+    r.readAsDataURL(f);inp.value="";
+  };inp.click();
+}
+
+function openItem(id){
+  currentItemId=id;
+  const item=data.items.find(i=>i.id===id);if(!item)return;
+  const cat=data.categories.find(c=>c.id===item.categoryId);
+
+  document.getElementById("page").style.display="none";
+  document.getElementById("detail").style.display="block";
+  document.getElementById("bc").style.display="none";
+
+  const bb=document.getElementById("back-btn");
+  bb.classList.add("show");
+  document.getElementById("back-label").textContent=cat?.name||"Back";
+  bb.onclick=()=>{
+    document.getElementById("detail").style.display="none";
+    document.getElementById("page").style.display="block";
+    document.getElementById("bc").style.display="flex";
+  };
+
+  document.getElementById("d-name").value=item.name;
+  document.getElementById("d-status").value=item.wishlist?"Wishlist":(item.status||"Owned");
+  document.getElementById("d-cost").value=item.cost||"";
+
+  const ph=document.getElementById("d-photo");
+  ph.innerHTML=item.image
+    ?`<img src="${item.image}" alt=""/><div class="doc-photo-ov">Change</div>`
+    :`<div class="doc-photo-hint">Add<br/>photo</div><div class="doc-photo-ov">Change</div>`;
+
+  const it=document.getElementById("icon-thumb");
+  it.innerHTML=item.icon?`<img src="${item.icon}" alt=""/>`:`<span id="icon-emoji">${cat?.emoji||"📦"}</span>`;
+
+  document.getElementById("doc-editor").innerHTML=item.notes||"";
+  renderSpecs(item.specs||[]);
+  renderTags(item.tags||[]);
+  renderPresets(item.presets||[]);
+  renderLinks(item.links||[]);
+
+  document.getElementById("photo-input").onchange=e=>{
+    const f=e.target.files?.[0];if(!f)return;
+    const r=new FileReader();
+    r.onload=ev=>{
+      data.items=data.items.map(i=>i.id===id?{...i,image:ev.target.result}:i);persist();
+      document.getElementById("d-photo").innerHTML=`<img src="${ev.target.result}" alt=""/><div class="doc-photo-ov">Change</div>`;
+      toast("Photo updated");
+    };r.readAsDataURL(f);
+  };
+  document.getElementById("icon-input").onchange=e=>{
+    const f=e.target.files?.[0];if(!f)return;
+    const r=new FileReader();
+    r.onload=ev=>{
+      data.items=data.items.map(i=>i.id===id?{...i,icon:ev.target.result}:i);persist();
+      document.getElementById("icon-thumb").innerHTML=`<img src="${ev.target.result}" alt=""/>`;
+      toast("Icon updated");
+    };r.readAsDataURL(f);
+  };
+  document.getElementById("doc-img-input").onchange=e=>{
+    const f=e.target.files?.[0];if(!f)return;
+    const r=new FileReader();
+    r.onload=ev=>{
+      const ed=document.getElementById("doc-editor");
+      ed.focus();document.execCommand("insertImage",false,ev.target.result);
+    };r.readAsDataURL(f);
+  };
+}
+
+function renderSpecs(specs){
+  let h="";
+  specs.forEach((s,i)=>{
+    h+=`<tr>
+      <td><input class="dsi" value="${s.key}" placeholder="Property" onchange="updateSpec(${i},'key',this.value)"/></td>
+      <td><input class="dsi" value="${s.value}" placeholder="Value" onchange="updateSpec(${i},'value',this.value)"/></td>
+      <td style="width:24px;text-align:right"><button class="dxb" onclick="removeSpec(${i})">×</button></td>
+    </tr>`;
+  });
+  h+=`<tr>
+    <td><input class="dsi" id="new-spec-k" placeholder="+ Property"/></td>
+    <td><input class="dsi" id="new-spec-v" placeholder="Value" onkeydown="if(event.key==='Enter')addSpec()"/></td>
+    <td style="width:24px;text-align:right"><button class="dxb" style="color:#c4894e" onclick="addSpec()">+</button></td>
+  </tr>`;
+  document.getElementById("specs-body").innerHTML=h;
+}
+function renderTags(tags){
+  let h="";
+  tags.forEach(t=>{h+=`<span class="doc-tag">${t}<button class="dtx" onclick="removeTag('${t}')">×</button></span>`;});
+  h+=`<input id="tag-input" placeholder="Add tag…" onkeydown="if(event.key==='Enter')addTag()"/>`;
+  document.getElementById("tags-container").innerHTML=h;
+}
+function renderPresets(presets){
+  document.getElementById("presets-list").innerHTML=presets.map(p=>`
+    <div class="doc-prow">
+      <div><div class="doc-pn">${p.name}</div>${p.desc?`<div class="doc-pd">${p.desc}</div>`:""}</div>
+      <button class="doc-rem-btn" onclick="removePreset('${p.id}')">Remove</button>
+    </div>`).join("");
+}
+function renderLinks(links){
+  document.getElementById("links-list").innerHTML=links.map(l=>`
+    <div class="doc-lrow">
+      <a class="doc-la" href="${l.url}" target="_blank" rel="noreferrer">${l.label||l.url}</a>
+      <button class="doc-rem-btn" onclick="removeLink('${l.id}')">Remove</button>
+    </div>`).join("");
+}
+
+function getItem(){return data.items.find(i=>i.id===currentItemId)}
+function patchItem(p){data.items=data.items.map(i=>i.id===currentItemId?{...i,...p}:i);persist()}
+
+function updateSpec(idx,key,val){const item=getItem();if(!item)return;const s=[...item.specs];s[idx]={...s[idx],[key]:val};patchItem({specs:s})}
+function addSpec(){
+  const k=document.getElementById("new-spec-k"),v=document.getElementById("new-spec-v");
+  if(!k.value.trim())return;
+  patchItem({specs:[...(getItem().specs||[]),{key:k.value.trim(),value:v.value.trim()}]});
+  renderSpecs(getItem().specs);
+}
+function removeSpec(idx){patchItem({specs:getItem().specs.filter((_,i)=>i!==idx)});renderSpecs(getItem().specs)}
+function addTag(){
+  const inp=document.getElementById("tag-input");
+  if(!inp||!inp.value.trim())return;
+  patchItem({tags:[...(getItem().tags||[]),inp.value.trim()]});renderTags(getItem().tags);
+}
+function removeTag(t){patchItem({tags:getItem().tags.filter(x=>x!==t)});renderTags(getItem().tags)}
+function addPreset(){
+  const n=document.getElementById("pre-name"),d=document.getElementById("pre-desc");
+  if(!n.value.trim())return;
+  patchItem({presets:[...(getItem().presets||[]),{id:uid(),name:n.value.trim(),desc:d.value.trim()}]});
+  renderPresets(getItem().presets);n.value="";d.value="";
+}
+function removePreset(pid){patchItem({presets:getItem().presets.filter(p=>p.id!==pid)});renderPresets(getItem().presets)}
+function addLink(){
+  const lbl=document.getElementById("link-label"),url=document.getElementById("link-url");
+  if(!url.value.trim())return;
+  patchItem({links:[...(getItem().links||[]),{id:uid(),label:lbl.value.trim(),url:url.value.trim()}]});
+  renderLinks(getItem().links);lbl.value="";url.value="";
+}
+function removeLink(lid){patchItem({links:getItem().links.filter(l=>l.id!==lid)});renderLinks(getItem().links)}
+
+function saveItem(){
+  patchItem({
+    name:document.getElementById("d-name").value,
+    status:document.getElementById("d-status").value,
+    wishlist:document.getElementById("d-status").value==="Wishlist",
+    cost:Number(document.getElementById("d-cost").value)||0,
+    notes:document.getElementById("doc-editor").innerHTML
+  });
+  updateStats();toast("Saved");
+}
+function deleteItem(){
+  if(!confirm("Delete this item?"))return;
+  data.items=data.items.filter(i=>i.id!==currentItemId);persist();updateStats();
+  document.getElementById("detail").style.display="none";
+  document.getElementById("page").style.display="block";
+  document.getElementById("bc").style.display="flex";
+  navigate(currentView);toast("Removed");
+}
+
+document.querySelectorAll(".dtb[data-cmd]").forEach(btn=>{
+  btn.addEventListener("mousedown",e=>{
+    e.preventDefault();
+    const cmd=btn.dataset.cmd;
+    const ed=document.getElementById("doc-editor");
+    ed.focus();
+    if(cmd==="h1")document.execCommand("formatBlock",false,"h1");
+    else if(cmd==="h2")document.execCommand("formatBlock",false,"h2");
+    else if(cmd==="h3")document.execCommand("formatBlock",false,"h3");
+    else if(cmd==="ul")document.execCommand("insertUnorderedList");
+    else if(cmd==="ol")document.execCommand("insertOrderedList");
+    else if(cmd==="quote")document.execCommand("formatBlock",false,"blockquote");
+    else if(cmd==="clear")document.execCommand("removeFormat");
+    else document.execCommand(cmd);
+  });
+});
+
+function openModal(type,parentId){
+  modalContext={type,parentId};
+  const wrap=document.getElementById("modal-wrap");
+  const title=document.getElementById("modal-title");
+  const body=document.getElementById("modal-body");
+  wrap.classList.add("show");
+  if(type==="addItem"){
+    title.textContent="New item";
+    body.innerHTML=`
+      <div class="mf"><div class="ml">Name</div><input class="mi" id="m-name" placeholder="e.g. Canon 85mm" autofocus/></div>
+      <div class="mf"><div class="ml">Cost ($)</div><input class="mi" id="m-cost" type="number" placeholder="0"/></div>
+      <div class="mf"><div class="ml">Status</div><select class="mi" id="m-status"><option value="false">Owned</option><option value="true">Wishlist</option></select></div>`;
+  } else if(type==="addCat"){
+    title.textContent="New category";
+    body.innerHTML=`
+      <div class="mf"><div class="ml">Name</div><input class="mi" id="m-name" placeholder="e.g. Drones" autofocus/></div>
+      <div class="mf"><div class="ml">Emoji</div><input class="mi" id="m-emoji" placeholder="🚁"/></div>`;
+  } else {
+    title.textContent="New directory";
+    body.innerHTML=`
+      <div class="mf"><div class="ml">Name</div><input class="mi" id="m-name" placeholder="e.g. Templates" autofocus/></div>
+      <div class="mf"><div class="ml">Emoji</div><input class="mi" id="m-emoji" placeholder="📁"/></div>`;
+  }
+  setTimeout(()=>document.getElementById("m-name")?.focus(),50);
+}
+function closeModal(){document.getElementById("modal-wrap").classList.remove("show")}
+function modalSubmit(){
+  const{type,parentId}=modalContext;
+  const name=document.getElementById("m-name")?.value?.trim();
+  if(!name)return;
+  if(type==="addItem"){
+    const wishlist=document.getElementById("m-status").value==="true";
+    const cost=Number(document.getElementById("m-cost")?.value)||0;
+    data.items.push({id:uid(),name,categoryId:parentId,status:wishlist?"Wishlist":"Owned",wishlist,cost,image:null,icon:null,notes:"",specs:[],tags:[],links:[],presets:[]});
+    persist();updateStats();closeModal();renderCat(parentId);toast("Item added");
+  } else if(type==="addCat"){
+    const emoji=document.getElementById("m-emoji")?.value||"📦";
+    const newCat={id:uid(),name,parentId,icon:null,emoji};
+    data.categories.push(newCat);
+    const dir=data.directories.find(d=>d.id===parentId);
+    if(dir)dir.children.push(newCat.id);
+    persist();closeModal();renderCat(parentId);toast("Category added");
+  } else {
+    const emoji=document.getElementById("m-emoji")?.value||"📁";
+    data.directories.push({id:uid(),name,icon:null,emoji,children:[]});
+    persist();closeModal();renderHome();toast("Directory added");
+  }
+}
+document.getElementById("modal-wrap").addEventListener("click",e=>{if(e.target===e.currentTarget)closeModal()});
+
+let ctxTarget=null;
+function showCtx(e,type,id){
+  e.preventDefault();e.stopPropagation();
+  ctxTarget={type,id};
+  const menu=document.getElementById("ctx-menu");
+  const del=document.getElementById("ctx-delete");
+  del.style.display=type==="dir"?"none":"flex";
+  menu.classList.add("show");
+  const x=Math.min(e.clientX,window.innerWidth-180);
+  const y=Math.min(e.clientY,window.innerHeight-140);
+  menu.style.left=x+"px";menu.style.top=y+"px";
+}
+function hideCtx(){document.getElementById("ctx-menu").classList.remove("show");ctxTarget=null}
+document.addEventListener("click",hideCtx);
+document.addEventListener("keydown",e=>{if(e.key==="Escape")hideCtx()});
+
+function ctxRename(){
+  if(!ctxTarget)return;
+  const{type,id}=ctxTarget;
+  const node=type==="dir"?data.directories.find(d=>d.id===id):type==="cat"?data.categories.find(c=>c.id===id):data.items.find(i=>i.id===id);
+  if(!node)return;
+  const name=prompt("Rename:",node.name);
+  if(!name||!name.trim())return;
+  if(type==="dir")data.directories=data.directories.map(d=>d.id===id?{...d,name:name.trim()}:d);
+  else if(type==="cat")data.categories=data.categories.map(c=>c.id===id?{...c,name:name.trim()}:c);
+  else data.items=data.items.map(i=>i.id===id?{...i,name:name.trim()}:i);
+  persist();updateStats();
+  if(currentView.type==="home")renderHome();else renderCat(currentView.id);
+  toast("Renamed");hideCtx();
+}
+function ctxChangeIcon(){
+  if(!ctxTarget)return;
+  const{type,id}=ctxTarget;
+  const inp=document.getElementById("hidden-img");
+  inp.onchange=ev=>{
+    const f=ev.target.files?.[0];if(!f)return;
+    const r=new FileReader();
+    r.onload=ev2=>{
+      if(type==="dir")data.directories=data.directories.map(d=>d.id===id?{...d,icon:ev2.target.result}:d);
+      else if(type==="cat")data.categories=data.categories.map(c=>c.id===id?{...c,icon:ev2.target.result}:c);
+      else data.items=data.items.map(i=>i.id===id?{...i,icon:ev2.target.result}:i);
+      persist();
+      if(currentView.type==="home")renderHome();else renderCat(currentView.id);
+      toast("Icon updated");
+    };r.readAsDataURL(f);inp.value="";
+  };inp.click();hideCtx();
+}
+function ctxDelete(){
+  if(!ctxTarget)return;
+  const{type,id}=ctxTarget;
+  if(type==="cat"){
+    if(!confirm("Delete this category and all its items?"))return;
+    data.items=data.items.filter(i=>i.categoryId!==id);
+    data.categories=data.categories.filter(c=>c.id!==id);
+    data.directories=data.directories.map(d=>({...d,children:d.children.filter(c=>c!==id)}));
+  } else if(type==="item"){
+    if(!confirm("Delete this item?"))return;
+    data.items=data.items.filter(i=>i.id!==id);
+  }
+  persist();updateStats();
+  if(currentView.type==="home")renderHome();else renderCat(currentView.id);
+  toast("Deleted");hideCtx();
+}
+
+updateStats();
+navigate({type:"home"});
+
+// Service Worker registration
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
