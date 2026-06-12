@@ -13,7 +13,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Gear Vault"/>
 <link rel="apple-touch-icon" href="/icons/icon-192.png"/>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Bebas+Neue&display=swap');
@@ -833,10 +832,9 @@ const DEFAULT = {
   ]
 };
 
-const _sb = supabase.createClient(
-  'https://nxqkypkxbwssyzplwfqj.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54cWt5cGt4Yndzc3l6cGx3ZnFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMTY5NjUsImV4cCI6MjA5Njc5Mjk2NX0.n630QFDzmAYvNpy2E9y_lEp4SUQLv4x0nQd4ib-3g_Y'
-);
+const SB_URL = 'https://nxqkypkxbwssyzplwfqj.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54cWt5cGt4Yndzc3l6cGx3ZnFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMTY5NjUsImV4cCI6MjA5Njc5Mjk2NX0.n630QFDzmAYvNpy2E9y_lEp4SUQLv4x0nQd4ib-3g_Y';
+const SB_HEADERS = {'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'};
 
 let data = JSON.parse(JSON.stringify(DEFAULT));
 let currentView={type:"home"};
@@ -860,30 +858,36 @@ function persist(){
   try{localStorage.setItem("ss-v5",JSON.stringify(data))}catch{}
   const dot=document.getElementById("sync-dot");
   dot.className="syncing";
-  _sb.from('gear_data').upsert({id:'vault',data:data})
-    .then(({error})=>{
-      if(error){
-        console.error("[Gear Vault] Supabase write error:",error);
-        dot.className="error";
-        toast("Cloud sync failed: "+error.message);
-      } else {
-        console.log("[Gear Vault] Supabase write OK");
-        dot.className="synced";
-      }
-      setTimeout(()=>{ dot.className=""; },3000);
-    })
-    .catch((e)=>{
-      console.error("[Gear Vault] Supabase write exception:",e);
+  fetch(SB_URL+'/rest/v1/gear_data',{
+    method:'POST',
+    headers:{...SB_HEADERS,'Prefer':'resolution=merge-duplicates'},
+    body:JSON.stringify({id:'vault',data:data})
+  }).then(async r=>{
+    if(r.ok){
+      console.log("[GV] write OK",r.status);
+      dot.className="synced";
+    } else {
+      const txt=await r.text();
+      console.error("[GV] write failed",r.status,txt);
       dot.className="error";
-      toast("Cloud sync failed — check connection");
-    });
+      toast("Sync failed ("+r.status+"): "+txt.slice(0,80));
+    }
+    setTimeout(()=>{ dot.className=""; },3000);
+  }).catch(e=>{
+    console.error("[GV] write error",e);
+    dot.className="error";
+    toast("Sync failed — "+e.message);
+  });
 }
 
 async function _loadData(){
   try{
-    const {data:row,error}=await _sb.from('gear_data').select('data').eq('id','vault').single();
-    if(!error&&row)return row.data;
-  }catch{}
+    const r=await fetch(SB_URL+'/rest/v1/gear_data?id=eq.vault&select=data',{headers:SB_HEADERS});
+    if(r.ok){
+      const rows=await r.json();
+      if(rows.length>0&&rows[0].data)return rows[0].data;
+    }
+  }catch(e){console.warn("[GV] load error",e);}
   try{const s=localStorage.getItem("ss-v5");if(s)return JSON.parse(s);}catch{}
   return JSON.parse(JSON.stringify(DEFAULT));
 }
@@ -1531,22 +1535,30 @@ async function syncFromCloud(){
   const dot=document.getElementById("sync-dot");
   dot.className="syncing";
   try{
-    const {data:row,error}=await _sb.from('gear_data').select('data').eq('id','vault').single();
-    if(!error&&row&&row.data){
-      data=row.data;
-      try{localStorage.setItem("ss-v5",JSON.stringify(data))}catch{}
-      updateStats();
-      if(currentView.type==="home")renderHome();
-      else if(currentView.type==="cat")renderCat(currentView.id);
-      dot.className="synced";
-      toast("Synced from cloud");
+    const r=await fetch(SB_URL+'/rest/v1/gear_data?id=eq.vault&select=data',{headers:SB_HEADERS});
+    if(r.ok){
+      const rows=await r.json();
+      if(rows.length>0&&rows[0].data){
+        data=rows[0].data;
+        try{localStorage.setItem("ss-v5",JSON.stringify(data))}catch{}
+        updateStats();
+        if(currentView.type==="home")renderHome();
+        else if(currentView.type==="cat")renderCat(currentView.id);
+        dot.className="synced";
+        toast("Synced from cloud");
+      } else {
+        dot.className="";
+        toast("No cloud data yet");
+      }
     } else {
+      const txt=await r.text();
       dot.className="error";
-      toast("Sync failed — no cloud data");
+      toast("Sync failed ("+r.status+")");
+      console.error("[GV] sync read failed",r.status,txt);
     }
   }catch(e){
     dot.className="error";
-    toast("Sync failed");
+    toast("Sync failed — "+e.message);
   }
   setTimeout(()=>{ dot.className=""; },3000);
 }
