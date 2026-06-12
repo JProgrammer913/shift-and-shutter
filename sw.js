@@ -1,4 +1,4 @@
-const CACHE = 'gear-vault-v1';
+const CACHE = 'gear-vault-v3';
 const ASSETS = ['/shift-and-shutter/', '/shift-and-shutter/index.html', '/shift-and-shutter/manifest.json', '/shift-and-shutter/icons/icon-192.png', '/shift-and-shutter/icons/icon-512.png'];
 
 self.addEventListener('install', e => {
