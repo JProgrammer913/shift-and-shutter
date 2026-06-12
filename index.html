@@ -13,6 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Gear Vault"/>
 <link rel="apple-touch-icon" href="/icons/icon-192.png"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Bebas+Neue&display=swap');
@@ -790,12 +791,29 @@ const DEFAULT = {
   ]
 };
 
-let data = (()=>{ try{const s=localStorage.getItem("ss-v5");return s?JSON.parse(s):JSON.parse(JSON.stringify(DEFAULT))}catch{return JSON.parse(JSON.stringify(DEFAULT))} })();
+const _sb = supabase.createClient(
+  'https://nxqkypkxbwssyzplwfqj.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54cWt5cGt4Yndzc3l6cGx3ZnFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMTY5NjUsImV4cCI6MjA5Njc5Mjk2NX0.n630QFDzmAYvNpy2E9y_lEp4SUQLv4x0nQd4ib-3g_Y'
+);
+
+let data = JSON.parse(JSON.stringify(DEFAULT));
 let currentView={type:"home"};
 let currentItemId=null;
 let modalContext=null;
 
-function persist(){try{localStorage.setItem("ss-v5",JSON.stringify(data))}catch{}}
+function persist(){
+  try{localStorage.setItem("ss-v5",JSON.stringify(data))}catch{}
+  _sb.from('gear_data').upsert({id:'vault',data}).catch(()=>{});
+}
+
+async function _loadData(){
+  try{
+    const {data:row,error}=await _sb.from('gear_data').select('data').eq('id','vault').single();
+    if(!error&&row)return row.data;
+  }catch{}
+  try{const s=localStorage.getItem("ss-v5");if(s)return JSON.parse(s);}catch{}
+  return JSON.parse(JSON.stringify(DEFAULT));
+}
 function uid(){return"x"+Math.random().toString(36).slice(2,8)}
 
 function toast(msg){
@@ -1431,8 +1449,7 @@ function ctxDelete(){
   toast("Deleted");hideCtx();
 }
 
-updateStats();
-navigate({type:"home"});
+_loadData().then(d=>{ data=d; updateStats(); navigate({type:"home"}); });
 
 // Service Worker registration
 if ('serviceWorker' in navigator) {
