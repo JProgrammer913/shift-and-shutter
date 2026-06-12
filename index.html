@@ -502,6 +502,81 @@ input[type=file] { display: none; }
 .ctx-item:hover { background: rgba(255,255,255,0.07); color: var(--text); }
 .ctx-item.danger:hover { background: rgba(139,58,58,.15); color: #c06060; }
 .ctx-sep { height: 1px; background: rgba(255,255,255,0.06); margin: 4px 0; }
+
+/* ---- Image resize overlay ---- */
+#img-overlay {
+  position: fixed; pointer-events: none;
+  display: none; z-index: 30;
+  box-shadow: 0 0 0 2px var(--copper);
+  border-radius: 3px;
+}
+.img-handle {
+  position: absolute; width: 10px; height: 10px;
+  background: var(--copper); border-radius: 2px;
+  pointer-events: all;
+}
+.img-handle[data-c="nw"] { top:-5px; left:-5px; cursor:nw-resize; }
+.img-handle[data-c="ne"] { top:-5px; right:-5px; cursor:ne-resize; }
+.img-handle[data-c="se"] { bottom:-5px; right:-5px; cursor:se-resize; }
+.img-handle[data-c="sw"] { bottom:-5px; left:-5px; cursor:sw-resize; }
+.doc-notes-editor img { cursor: grab; user-select: none; }
+.doc-notes-editor img.img-selected { outline: 2px solid var(--copper); outline-offset: 1px; }
+
+/* ---- Color picker ---- */
+.color-picker-wrap { position: relative; }
+.color-palette {
+  position: absolute; top: calc(100% + 4px); left: 0;
+  background: #2a2a2a; border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px; padding: 8px;
+  display: none; grid-template-columns: repeat(6, 18px);
+  gap: 4px; z-index: 100;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
+.color-palette.show { display: grid; }
+.cp-swatch {
+  width: 18px; height: 18px; border-radius: 3px; cursor: pointer;
+  border: 1px solid rgba(0,0,0,0.3); transition: transform .1s;
+}
+.cp-swatch:hover { transform: scale(1.25); }
+#color-btn-bar {
+  display: inline-block; width: 10px; height: 3px;
+  border-radius: 1px; background: var(--copper);
+  vertical-align: middle; margin-left: 1px;
+}
+
+/* ---- File attachments ---- */
+.attach-dropzone {
+  border: 1px dashed rgba(255,255,255,0.1); border-radius: 8px;
+  padding: 14px; text-align: center; cursor: pointer;
+  transition: border-color .15s, background .15s;
+  color: #555; font-size: 11px; letter-spacing: .3px; margin-bottom: 10px;
+}
+.attach-dropzone:hover, .attach-dropzone.drag-over {
+  border-color: rgba(196,137,78,0.4);
+  background: rgba(196,137,78,0.03); color: var(--copper);
+}
+.attach-row {
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 7px; padding: 9px 12px;
+  display: flex; align-items: center; gap: 10px; margin-bottom: 5px;
+}
+.attach-icon { font-size: 18px; flex-shrink: 0; }
+.attach-info { flex: 1; min-width: 0; }
+.attach-name { font-size: 12px; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.attach-meta { display: flex; gap: 6px; align-items: center; margin-top: 2px; }
+.attach-badge {
+  font-size: 9px; letter-spacing: .8px; text-transform: uppercase;
+  background: rgba(196,137,78,0.12); border: 1px solid rgba(196,137,78,0.2);
+  color: var(--copper); border-radius: 3px; padding: 1px 5px;
+}
+.attach-size { font-size: 10px; color: #555; }
+.attach-dl {
+  background: none; border: 1px solid rgba(255,255,255,0.08);
+  color: #666; font-size: 10px; font-family: inherit;
+  padding: 4px 10px; border-radius: 5px; cursor: pointer;
+  transition: all .15s; flex-shrink: 0;
+}
+.attach-dl:hover { border-color: rgba(196,137,78,0.3); color: var(--copper); }
 </style>
 </head>
 <body class="carbon">
@@ -541,9 +616,13 @@ input[type=file] { display: none; }
       <button class="dtb" data-cmd="ol">1. List</button>
       <button class="dtb" data-cmd="quote">Quote</button>
     </div>
+    <div class="doc-tb-group color-picker-wrap">
+      <button class="dtb" id="color-btn" onmousedown="toggleColorPalette(event)">A<span id="color-btn-bar"></span></button>
+      <div class="color-palette" id="color-palette"></div>
+    </div>
     <div class="doc-tb-group">
       <label class="dtb dtb-img" style="cursor:pointer">
-        <input type="file" id="doc-img-input" accept="image/*"/>Image
+        <input type="file" id="doc-img-input" accept="image/*" multiple/>Images
       </label>
       <button class="dtb" data-cmd="clear">Clear</button>
     </div>
@@ -631,6 +710,14 @@ input[type=file] { display: none; }
           </div>
         </div>
 
+        <div class="doc-section">
+          <div class="doc-sec-title">File Attachments</div>
+          <div class="attach-dropzone" id="attach-dropzone" onclick="document.getElementById('attach-input').click()">
+            Drop files here or click to attach — PSDs, Premiere projects, presets, ZIPs…
+          </div>
+          <div id="attachments-list"></div>
+        </div>
+
       </div>
 
       <div class="doc-actions">
@@ -662,6 +749,8 @@ input[type=file] { display: none; }
 </div>
 
 <input type="file" id="hidden-img" accept="image/*" style="display:none"/>
+<input type="file" id="attach-input" style="display:none" multiple/>
+<div id="img-overlay"></div>
 
 <script>
 const DEFAULT = {
@@ -685,19 +774,19 @@ const DEFAULT = {
     {id:"utilities",name:"Utilities",parentId:"software",icon:null,emoji:"⚙️"},
   ],
   items:[
-    {id:"i1",name:"Canon EOS R50",categoryId:"cameras",status:"Owned",wishlist:false,cost:679,image:null,icon:null,notes:"<p>Primary body. APS-C 24.2MP mirrorless.</p>",specs:[{key:"Sensor",value:"APS-C 24.2MP"},{key:"Mount",value:"RF-S"},{key:"Video",value:"4K 30fps"}],tags:["Canon","Mirrorless"],links:[],presets:[]},
-    {id:"i2",name:"Kit 18-45mm",categoryId:"lenses",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[{key:"Focal",value:"18-45mm"},{key:"Aperture",value:"f/4.5-6.3"}],tags:["Canon","Kit"],links:[],presets:[]},
-    {id:"i3",name:"50mm Prime",categoryId:"lenses",status:"Owned",wishlist:false,cost:249,image:null,icon:null,notes:"",specs:[{key:"Focal",value:"50mm"},{key:"Mount",value:"RF"}],tags:["Canon","Prime"],links:[],presets:[]},
-    {id:"i4",name:"100-400mm",categoryId:"lenses",status:"Owned",wishlist:false,cost:649,image:null,icon:null,notes:"",specs:[{key:"Focal",value:"100-400mm"}],tags:["Canon","Telephoto"],links:[],presets:[]},
-    {id:"i5",name:"CPL Filter",categoryId:"filters",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[],tags:[],links:[],presets:[]},
-    {id:"i6",name:"ND-9 Filter",categoryId:"filters",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[],tags:[],links:[],presets:[]},
-    {id:"i7",name:"RS 5",categoryId:"gimbals",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[],tags:["DJI"],links:[],presets:[]},
-    {id:"s1",name:"Lightroom",categoryId:"editing",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[],tags:["Adobe"],links:[],presets:[]},
-    {id:"s2",name:"Photoshop",categoryId:"editing",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[],tags:["Adobe"],links:[],presets:[]},
-    {id:"s3",name:"Premiere Pro",categoryId:"editing",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[],tags:["Adobe"],links:[],presets:[]},
-    {id:"s4",name:"After Effects",categoryId:"editing",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[],tags:["Adobe"],links:[],presets:[]},
-    {id:"s5",name:"Illustrator",categoryId:"design",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[],tags:["Adobe"],links:[],presets:[]},
-    {id:"s6",name:"Canva",categoryId:"design",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[],tags:[],links:[],presets:[]},
+    {id:"i1",name:"Canon EOS R50",categoryId:"cameras",status:"Owned",wishlist:false,cost:679,image:null,icon:null,notes:"<p>Primary body. APS-C 24.2MP mirrorless.</p>",specs:[{key:"Sensor",value:"APS-C 24.2MP"},{key:"Mount",value:"RF-S"},{key:"Video",value:"4K 30fps"}],tags:["Canon","Mirrorless"],links:[],presets:[],attachments:[]},
+    {id:"i2",name:"Kit 18-45mm",categoryId:"lenses",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[{key:"Focal",value:"18-45mm"},{key:"Aperture",value:"f/4.5-6.3"}],tags:["Canon","Kit"],links:[],presets:[],attachments:[]},
+    {id:"i3",name:"50mm Prime",categoryId:"lenses",status:"Owned",wishlist:false,cost:249,image:null,icon:null,notes:"",specs:[{key:"Focal",value:"50mm"},{key:"Mount",value:"RF"}],tags:["Canon","Prime"],links:[],presets:[],attachments:[]},
+    {id:"i4",name:"100-400mm",categoryId:"lenses",status:"Owned",wishlist:false,cost:649,image:null,icon:null,notes:"",specs:[{key:"Focal",value:"100-400mm"}],tags:["Canon","Telephoto"],links:[],presets:[],attachments:[]},
+    {id:"i5",name:"CPL Filter",categoryId:"filters",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[],tags:[],links:[],presets:[],attachments:[]},
+    {id:"i6",name:"ND-9 Filter",categoryId:"filters",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[],tags:[],links:[],presets:[],attachments:[]},
+    {id:"i7",name:"RS 5",categoryId:"gimbals",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[],tags:["DJI"],links:[],presets:[],attachments:[]},
+    {id:"s1",name:"Lightroom",categoryId:"editing",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[],tags:["Adobe"],links:[],presets:[],attachments:[]},
+    {id:"s2",name:"Photoshop",categoryId:"editing",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[],tags:["Adobe"],links:[],presets:[],attachments:[]},
+    {id:"s3",name:"Premiere Pro",categoryId:"editing",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[],tags:["Adobe"],links:[],presets:[],attachments:[]},
+    {id:"s4",name:"After Effects",categoryId:"editing",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[],tags:["Adobe"],links:[],presets:[],attachments:[]},
+    {id:"s5",name:"Illustrator",categoryId:"design",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[],tags:["Adobe"],links:[],presets:[],attachments:[]},
+    {id:"s6",name:"Canva",categoryId:"design",status:"Owned",wishlist:false,cost:0,image:null,icon:null,notes:"",specs:[],tags:[],links:[],presets:[],attachments:[]},
   ]
 };
 
@@ -910,13 +999,35 @@ function openItem(id){
     };r.readAsDataURL(f);
   };
   document.getElementById("doc-img-input").onchange=e=>{
-    const f=e.target.files?.[0];if(!f)return;
-    const r=new FileReader();
-    r.onload=ev=>{
-      const ed=document.getElementById("doc-editor");
-      ed.focus();document.execCommand("insertImage",false,ev.target.result);
-    };r.readAsDataURL(f);
+    Array.from(e.target.files).forEach(f=>{
+      const r=new FileReader();
+      r.onload=ev=>{
+        const ed=document.getElementById("doc-editor");
+        ed.focus();
+        document.execCommand("insertImage",false,ev.target.result);
+        // make newly inserted img draggable
+        ed.querySelectorAll("img").forEach(img=>{ img.draggable=true; });
+      };
+      r.readAsDataURL(f);
+    });
+    e.target.value="";
   };
+
+  // attach input
+  const attachInput=document.getElementById("attach-input");
+  attachInput.onchange=e=>{ Array.from(e.target.files).forEach(addAttachment); e.target.value=""; };
+
+  // drop zone drag-over styling
+  const dz=document.getElementById("attach-dropzone");
+  dz.addEventListener("dragover",e=>{ e.preventDefault(); dz.classList.add("drag-over"); });
+  dz.addEventListener("dragleave",()=>dz.classList.remove("drag-over"));
+  dz.addEventListener("drop",e=>{
+    e.preventDefault(); dz.classList.remove("drag-over");
+    Array.from(e.dataTransfer.files).forEach(addAttachment);
+  });
+
+  renderAttachments(item.attachments||[]);
+  setupImgInteraction();
 }
 
 function renderSpecs(specs){
@@ -994,7 +1105,8 @@ function saveItem(){
     status:document.getElementById("d-status").value,
     wishlist:document.getElementById("d-status").value==="Wishlist",
     cost:Number(document.getElementById("d-cost").value)||0,
-    notes:document.getElementById("doc-editor").innerHTML
+    notes:document.getElementById("doc-editor").innerHTML,
+    attachments:getItem().attachments||[]
   });
   updateStats();toast("Saved");
 }
@@ -1005,6 +1117,187 @@ function deleteItem(){
   document.getElementById("page").style.display="block";
   document.getElementById("bc").style.display="flex";
   navigate(currentView);toast("Removed");
+}
+
+// ---- Image overlay / resize / drag ----
+let selectedImg=null, resizing=false, resizeCorner=null;
+let resizeStartX,resizeStartY,resizeStartW,resizeStartH;
+
+function initImgOverlay(){
+  const ov=document.getElementById("img-overlay");
+  if(ov.children.length)return;
+  ["nw","ne","se","sw"].forEach(c=>{
+    const h=document.createElement("div");
+    h.className="img-handle"; h.dataset.c=c;
+    h.addEventListener("mousedown",e=>startResize(e,c));
+    ov.appendChild(h);
+  });
+}
+
+function positionOverlay(){
+  if(!selectedImg||!document.body.contains(selectedImg)){deselectEditorImg();return;}
+  const ov=document.getElementById("img-overlay");
+  const r=selectedImg.getBoundingClientRect();
+  ov.style.cssText=`position:fixed;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;display:block;pointer-events:none;z-index:30;box-shadow:0 0 0 2px var(--copper);border-radius:3px;`;
+  ov.querySelectorAll(".img-handle").forEach(h=>h.style.pointerEvents="all");
+}
+
+function selectEditorImg(img){
+  if(selectedImg)selectedImg.classList.remove("img-selected");
+  selectedImg=img; img.classList.add("img-selected");
+  positionOverlay();
+}
+
+function deselectEditorImg(){
+  if(selectedImg)selectedImg.classList.remove("img-selected");
+  selectedImg=null;
+  document.getElementById("img-overlay").style.display="none";
+}
+
+function startResize(e,corner){
+  e.preventDefault(); e.stopPropagation();
+  if(!selectedImg)return;
+  resizing=true; resizeCorner=corner;
+  resizeStartX=e.clientX; resizeStartY=e.clientY;
+  resizeStartW=selectedImg.offsetWidth; resizeStartH=selectedImg.offsetHeight;
+}
+
+document.addEventListener("mousemove",e=>{
+  if(!resizing||!selectedImg)return;
+  const dx=e.clientX-resizeStartX, dy=e.clientY-resizeStartY;
+  let w=resizeStartW, h=resizeStartH;
+  if(resizeCorner.includes("e"))w=Math.max(40,resizeStartW+dx);
+  if(resizeCorner.includes("w"))w=Math.max(40,resizeStartW-dx);
+  if(resizeCorner.includes("s"))h=Math.max(30,resizeStartH+dy);
+  if(resizeCorner.includes("n"))h=Math.max(30,resizeStartH-dy);
+  selectedImg.style.width=w+"px"; selectedImg.style.height=h+"px";
+  positionOverlay();
+});
+document.addEventListener("mouseup",()=>{ resizing=false; });
+document.addEventListener("scroll",()=>{ if(selectedImg)positionOverlay(); },true);
+window.addEventListener("resize",()=>{ if(selectedImg)positionOverlay(); });
+
+function setupImgInteraction(){
+  initImgOverlay();
+  const ed=document.getElementById("doc-editor");
+  // remove old listeners by replacing with a clone... instead use a flag
+  ed._imgClick=e=>{
+    if(e.target.tagName==="IMG"){ e.preventDefault(); selectEditorImg(e.target); }
+    else if(!e.target.closest("#img-overlay")){ deselectEditorImg(); }
+  };
+  ed.removeEventListener("click",ed._imgClick);
+  ed.addEventListener("click",ed._imgClick);
+
+  // drag to reposition
+  ed.addEventListener("dragstart",e=>{
+    if(e.target.tagName!=="IMG")return;
+    selectEditorImg(e.target);
+    e.dataTransfer.effectAllowed="move";
+    e.dataTransfer.setData("text/plain","img-move");
+    setTimeout(()=>{ if(selectedImg)selectedImg.style.opacity="0.35"; },0);
+  });
+  ed.addEventListener("dragend",()=>{
+    if(selectedImg)selectedImg.style.opacity="";
+  });
+  ed.addEventListener("dragover",e=>e.preventDefault());
+  ed.addEventListener("drop",e=>{
+    e.preventDefault();
+    if(!selectedImg||e.dataTransfer.getData("text/plain")!=="img-move")return;
+    const range=document.caretRangeFromPoint
+      ? document.caretRangeFromPoint(e.clientX,e.clientY)
+      : (()=>{ const s=window.getSelection(); return s.rangeCount?s.getRangeAt(0):null; })();
+    if(range){ range.insertNode(selectedImg); positionOverlay(); }
+  });
+
+  // make existing images draggable
+  ed.querySelectorAll("img").forEach(img=>{ img.draggable=true; });
+}
+
+// ---- Color picker ----
+const COLORS=["#ffffff","#d0d0d0","#888888","#444444","#222222","#000000",
+  "#ff4444","#ff8c00","#ffd700","#66bb6a","#42a5f5","#ab47bc",
+  "#c4894e","#8d5524","#2e7d32","#1565c0","#b71c1c","#ff80ab",
+  "#00bcd4","#69f0ae","#ff6e40","#d4ac0d","#7c4dff","#26c6da"];
+
+(function buildPalette(){
+  const pal=document.getElementById("color-palette");
+  if(!pal)return;
+  COLORS.forEach(col=>{
+    const s=document.createElement("div");
+    s.className="cp-swatch"; s.style.background=col; s.title=col;
+    s.addEventListener("mousedown",e=>{
+      e.preventDefault();
+      const ed=document.getElementById("doc-editor");
+      ed.focus(); document.execCommand("foreColor",false,col);
+      document.getElementById("color-btn-bar").style.background=col;
+      document.getElementById("color-palette").classList.remove("show");
+    });
+    pal.appendChild(s);
+  });
+})();
+
+function toggleColorPalette(e){
+  e.preventDefault();
+  document.getElementById("color-palette").classList.toggle("show");
+}
+document.addEventListener("click",e=>{
+  if(!e.target.closest(".color-picker-wrap"))
+    document.getElementById("color-palette")?.classList.remove("show");
+});
+
+// ---- File attachments ----
+function fileIcon(name){
+  const ext=(name.split(".").pop()||"").toLowerCase();
+  if(["psd","ai","indd","xd"].includes(ext))return"🎨";
+  if(["prproj","aep","mogrt","ppj"].includes(ext))return"🎬";
+  if(["lrtemplate","xmp","lrcat","lrdata","cube"].includes(ext))return"📷";
+  if(["zip","rar","7z","tar","gz"].includes(ext))return"📦";
+  if(["pdf"].includes(ext))return"📄";
+  if(["jpg","jpeg","png","gif","webp","tiff","heic"].includes(ext))return"🖼";
+  if(["mp4","mov","avi","mkv","prores"].includes(ext))return"🎥";
+  if(["mp3","wav","aiff","flac"].includes(ext))return"🎵";
+  return"📎";
+}
+function fmtSize(b){
+  if(b<1024)return b+"B";
+  if(b<1048576)return(b/1024).toFixed(1)+"KB";
+  return(b/1048576).toFixed(1)+"MB";
+}
+function renderAttachments(attachments){
+  document.getElementById("attachments-list").innerHTML=(attachments||[]).map(a=>`
+    <div class="attach-row">
+      <span class="attach-icon">${fileIcon(a.name)}</span>
+      <div class="attach-info">
+        <div class="attach-name" title="${a.name}">${a.name}</div>
+        <div class="attach-meta">
+          <span class="attach-badge">${(a.name.split(".").pop()||"file").toUpperCase()}</span>
+          <span class="attach-size">${fmtSize(a.size)}</span>
+        </div>
+      </div>
+      <button class="attach-dl" onclick="downloadAttachment('${a.id}')">↓ Save</button>
+      <button class="doc-rem-btn" onclick="removeAttachment('${a.id}')">Remove</button>
+    </div>`).join("");
+}
+function addAttachment(file){
+  if(file.size>5*1024*1024){ toast("File over 5 MB — may not save"); }
+  const r=new FileReader();
+  r.onload=ev=>{
+    const att={id:uid(),name:file.name,size:file.size,data:ev.target.result};
+    patchItem({attachments:[...(getItem().attachments||[]),att]});
+    renderAttachments(getItem().attachments);
+    toast("Attached: "+file.name);
+  };
+  r.readAsDataURL(file);
+}
+function removeAttachment(aid){
+  patchItem({attachments:(getItem().attachments||[]).filter(a=>a.id!==aid)});
+  renderAttachments(getItem().attachments);
+}
+function downloadAttachment(aid){
+  const a=(getItem().attachments||[]).find(x=>x.id===aid);
+  if(!a)return;
+  const el=document.createElement("a");
+  el.href=a.data; el.download=a.name; el.click();
 }
 
 document.querySelectorAll(".dtb[data-cmd]").forEach(btn=>{
@@ -1057,7 +1350,7 @@ function modalSubmit(){
   if(type==="addItem"){
     const wishlist=document.getElementById("m-status").value==="true";
     const cost=Number(document.getElementById("m-cost")?.value)||0;
-    data.items.push({id:uid(),name,categoryId:parentId,status:wishlist?"Wishlist":"Owned",wishlist,cost,image:null,icon:null,notes:"",specs:[],tags:[],links:[],presets:[]});
+    data.items.push({id:uid(),name,categoryId:parentId,status:wishlist?"Wishlist":"Owned",wishlist,cost,image:null,icon:null,notes:"",specs:[],tags:[],links:[],presets:[],attachments:[]});
     persist();updateStats();closeModal();renderCat(parentId);toast("Item added");
   } else if(type==="addCat"){
     const emoji=document.getElementById("m-emoji")?.value||"📦";
