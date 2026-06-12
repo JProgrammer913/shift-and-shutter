@@ -1537,6 +1537,7 @@ function ctxDelete(){
 }
 
 async function syncFromCloud(){
+  if(editMode) saveItem(true);
   const dot=document.getElementById("sync-dot");
   dot.className="syncing";
   try{
