@@ -91,7 +91,7 @@ body {
 
 /* ---- Topbar ---- */
 #topbar {
-  height: 50px;
+  height: 100px;
   background: linear-gradient(180deg, #323232 0%, #282828 100%);
   border-bottom: 1px solid rgba(0,0,0,0.5);
   box-shadow: 0 1px 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.4);
@@ -586,6 +586,12 @@ input[type=file] { display: none; }
 .card:active { transform: scale(0.97) !important; opacity: .85; transition: transform .08s, opacity .08s; }
 .doc-btn:active, .mbtn:active, .dtb:active, .doc-add-btn:active, .doc-rem-btn:active, .attach-dl:active { opacity: .6; }
 .card-add:active { transform: none !important; }
+@media (hover: none) {
+  .card:hover, .doc-btn:hover, .mbtn:hover, .dtb:hover, .card-add:hover,
+  .doc-add-btn:hover, .doc-rem-btn:hover, .attach-dl:hover, #sync-btn:hover {
+    transform: none; opacity: 1; background: revert; color: revert;
+  }
+}
 
 /* ---- Sync dot + button ---- */
 #sync-dot {
