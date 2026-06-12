@@ -860,12 +860,23 @@ function persist(){
   try{localStorage.setItem("ss-v5",JSON.stringify(data))}catch{}
   const dot=document.getElementById("sync-dot");
   dot.className="syncing";
-  _sb.from('gear_data').upsert({id:'vault',data})
+  _sb.from('gear_data').upsert({id:'vault',data:data})
     .then(({error})=>{
-      dot.className=error?"error":"synced";
+      if(error){
+        console.error("[Gear Vault] Supabase write error:",error);
+        dot.className="error";
+        toast("Cloud sync failed: "+error.message);
+      } else {
+        console.log("[Gear Vault] Supabase write OK");
+        dot.className="synced";
+      }
       setTimeout(()=>{ dot.className=""; },3000);
     })
-    .catch(()=>{ dot.className="error"; });
+    .catch((e)=>{
+      console.error("[Gear Vault] Supabase write exception:",e);
+      dot.className="error";
+      toast("Cloud sync failed — check connection");
+    });
 }
 
 async function _loadData(){
