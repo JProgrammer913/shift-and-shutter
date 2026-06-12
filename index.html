@@ -328,10 +328,10 @@ select.doc-fi option { background: #2a2a2a; }
 
 /* The free-form editor — primary space */
 .doc-notes-editor {
-  outline: none; min-height: 300px;
+  outline: none; min-height: 400px;
   color: #d8d8d8; font-size: 14px; line-height: 1.9;
   font-family: inherit; caret-color: var(--copper);
-  margin-bottom: 40px;
+  margin-bottom: 40px; width: 100%;
 }
 .doc-notes-editor:empty::before { content: attr(data-ph); color: #3a3a3a; pointer-events: none; }
 .doc-notes-editor h1 { font-size: 22px; font-weight: 400; margin: 14px 0 6px; color: #eee; letter-spacing: -.3px; }
@@ -729,45 +729,10 @@ input[type=file] { display: none; }
         </div>
 
         <div class="doc-section">
-          <div class="doc-sec-title">Specs</div>
-          <table class="doc-specs">
-            <tbody id="specs-body"></tbody>
-          </table>
-        </div>
-
-        <div class="doc-section">
           <div class="doc-sec-title">Tags</div>
           <div class="doc-tags" id="tags-container">
             <input id="tag-input" placeholder="Add tag…"/>
           </div>
-        </div>
-
-        <div class="doc-section">
-          <div class="doc-sec-title">Presets &amp; Settings</div>
-          <div id="presets-list"></div>
-          <div class="doc-add-row">
-            <input class="doc-add-fi" id="pre-name" placeholder="Preset name" style="flex:1;min-width:80px"/>
-            <input class="doc-add-fi" id="pre-desc" placeholder="Description (optional)" style="flex:2;min-width:120px"/>
-            <button class="doc-add-btn" onclick="addPreset()">Add</button>
-          </div>
-        </div>
-
-        <div class="doc-section">
-          <div class="doc-sec-title">Links &amp; Resources</div>
-          <div id="links-list"></div>
-          <div class="doc-add-row">
-            <input class="doc-add-fi" id="link-label" placeholder="Label" style="flex:1;min-width:70px"/>
-            <input class="doc-add-fi" id="link-url" placeholder="https://…" style="flex:2;min-width:130px"/>
-            <button class="doc-add-btn" onclick="addLink()">Add</button>
-          </div>
-        </div>
-
-        <div class="doc-section">
-          <div class="doc-sec-title">File Attachments</div>
-          <div class="attach-dropzone" id="attach-dropzone" onclick="document.getElementById('attach-input').click()">
-            Drop files here or click to attach — PSDs, Premiere projects, presets, ZIPs…
-          </div>
-          <div id="attachments-list"></div>
         </div>
 
       </div>
