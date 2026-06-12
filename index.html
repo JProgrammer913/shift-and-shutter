@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <title>Shift & Shutter — Gear Vault</title>
 
 <!-- PWA -->
@@ -578,6 +578,39 @@ input[type=file] { display: none; }
   transition: all .15s; flex-shrink: 0;
 }
 .attach-dl:hover { border-color: rgba(196,137,78,0.3); color: var(--copper); }
+
+/* ---- Touch responsiveness ---- */
+* { -webkit-tap-highlight-color: transparent; }
+.card, button, label, .ctx-item, .mbtn, .doc-btn, .dtb, .attach-dl, .doc-rem-btn, .doc-add-btn {
+  touch-action: manipulation;
+}
+.card:active { transform: scale(0.97) !important; opacity: .85; transition: transform .08s, opacity .08s; }
+.doc-btn:active, .mbtn:active, .dtb:active, .doc-add-btn:active, .doc-rem-btn:active, .attach-dl:active { opacity: .6; }
+.card-add:active { transform: none !important; }
+
+/* ---- Sync dot ---- */
+#sync-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #3a3a3a; transition: background .3s; flex-shrink: 0;
+}
+#sync-dot.syncing { background: var(--copper); }
+#sync-dot.synced  { background: #4caf50; }
+#sync-dot.error   { background: #e53935; }
+
+/* ---- View / edit mode ---- */
+#detail.view-mode .doc-topbar { opacity: 0; pointer-events: none; height: 0; overflow: hidden; border: none; }
+#detail.view-mode .doc-notes-editor { pointer-events: none; }
+#detail.view-mode #d-name { pointer-events: none; border-color: transparent; }
+#detail.view-mode .doc-fi { pointer-events: none; background: transparent; border-color: transparent; }
+#detail.view-mode .doc-icon-row { display: none; }
+#detail.view-mode .doc-add-row { display: none; }
+#detail.view-mode .doc-rem-btn, #detail.view-mode .dxb, #detail.view-mode .dtx { display: none; }
+#detail.view-mode .attach-dropzone { display: none; }
+#detail.view-mode .doc-btn-save, #detail.view-mode .doc-btn-del { display: none; }
+#detail.view-mode #view-edit-btn { display: inline-flex !important; }
+#detail:not(.view-mode) #view-edit-btn { display: none !important; }
+.doc-btn-edit { background: rgba(196,137,78,.12); border-color: rgba(196,137,78,.25); color: var(--copper); }
+.doc-btn-edit:hover { background: rgba(196,137,78,.22); color: var(--copper2); }
 </style>
 </head>
 <body class="carbon">
@@ -587,6 +620,7 @@ input[type=file] { display: none; }
     <span id="logo">Shift &amp; Shutter</span>
     <span id="logo-sub">Gear Vault</span>
   </div>
+  <span id="sync-dot" title="Sync status"></span>
 </div>
 
 <div id="stats">
@@ -722,6 +756,7 @@ input[type=file] { display: none; }
       </div>
 
       <div class="doc-actions">
+        <button class="doc-btn doc-btn-edit" id="view-edit-btn" onclick="enterEditMode()">Edit</button>
         <button class="doc-btn doc-btn-save" onclick="saveItem()">Save</button>
         <button class="doc-btn doc-btn-del" onclick="deleteItem()">Delete item</button>
       </div>
@@ -800,10 +835,30 @@ let data = JSON.parse(JSON.stringify(DEFAULT));
 let currentView={type:"home"};
 let currentItemId=null;
 let modalContext=null;
+let editMode=false;
+
+function enterViewMode(){
+  editMode=false;
+  document.getElementById("detail").classList.add("view-mode");
+  document.getElementById("doc-editor").contentEditable="false";
+}
+function enterEditMode(){
+  editMode=true;
+  document.getElementById("detail").classList.remove("view-mode");
+  document.getElementById("doc-editor").contentEditable="true";
+  document.getElementById("doc-editor").focus();
+}
 
 function persist(){
   try{localStorage.setItem("ss-v5",JSON.stringify(data))}catch{}
-  _sb.from('gear_data').upsert({id:'vault',data}).catch(()=>{});
+  const dot=document.getElementById("sync-dot");
+  dot.className="syncing";
+  _sb.from('gear_data').upsert({id:'vault',data})
+    .then(({error})=>{
+      dot.className=error?"error":"synced";
+      setTimeout(()=>{ dot.className=""; },3000);
+    })
+    .catch(()=>{ dot.className="error"; });
 }
 
 async function _loadData(){
@@ -975,6 +1030,9 @@ function openItem(id){
   bb.classList.add("show");
   document.getElementById("back-label").textContent=cat?.name||"Back";
   bb.onclick=()=>{
+    if(editMode) saveItem(true);
+    deselectEditorImg();
+    enterViewMode();
     document.getElementById("detail").style.display="none";
     document.getElementById("page").style.display="block";
     document.getElementById("bc").style.display="flex";
@@ -1046,6 +1104,7 @@ function openItem(id){
 
   renderAttachments(item.attachments||[]);
   setupImgInteraction();
+  enterViewMode();
 }
 
 function renderSpecs(specs){
@@ -1117,7 +1176,7 @@ function addLink(){
 }
 function removeLink(lid){patchItem({links:getItem().links.filter(l=>l.id!==lid)});renderLinks(getItem().links)}
 
-function saveItem(){
+function saveItem(silent){
   patchItem({
     name:document.getElementById("d-name").value,
     status:document.getElementById("d-status").value,
@@ -1126,7 +1185,8 @@ function saveItem(){
     notes:document.getElementById("doc-editor").innerHTML,
     attachments:getItem().attachments||[]
   });
-  updateStats();toast("Saved");
+  updateStats();
+  if(!silent) toast("Saved");
 }
 function deleteItem(){
   if(!confirm("Delete this item?"))return;
