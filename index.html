@@ -595,12 +595,15 @@ input[type=file] { display: none; }
 #sync-dot.syncing { background: var(--copper); }
 #sync-dot.synced  { background: #4caf50; }
 #sync-dot.error   { background: #e53935; }
+#topbar-right { display: flex; align-items: center; gap: 10px; }
 #sync-btn {
-  background: none; border: none; cursor: pointer;
-  color: var(--mid); font-size: 15px; padding: 2px 4px; line-height: 1;
-  opacity: .7; transition: opacity .2s;
+  background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px; cursor: pointer; color: var(--mid);
+  font-size: 16px; padding: 4px 10px; line-height: 1;
+  transition: background .2s, color .2s;
+  -webkit-tap-highlight-color: transparent;
 }
-#sync-btn:hover { opacity: 1; color: var(--copper); }
+#sync-btn:hover, #sync-btn:active { background: rgba(196,137,78,.2); color: var(--copper); }
 
 /* ---- View / edit mode ---- */
 #detail.view-mode .doc-topbar { opacity: 0; pointer-events: none; height: 0; overflow: hidden; border: none; }
@@ -625,8 +628,10 @@ input[type=file] { display: none; }
     <span id="logo">Shift &amp; Shutter</span>
     <span id="logo-sub">Gear Vault</span>
   </div>
-  <button id="sync-btn" title="Pull latest from cloud" onclick="syncFromCloud()">↻</button>
-  <span id="sync-dot" title="Sync status"></span>
+  <div id="topbar-right">
+    <button id="sync-btn" onclick="syncFromCloud()">↻ Sync</button>
+    <span id="sync-dot" title="Sync status"></span>
+  </div>
 </div>
 
 <div id="stats">
