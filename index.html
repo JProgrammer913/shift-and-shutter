@@ -1576,8 +1576,13 @@ _loadData().then(d=>{ data=d; updateStats(); navigate({type:"home"}); });
 
 // Service Worker registration
 if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', e => {
+    if (e.data && e.data.type === 'SW_RELOAD') location.reload();
+  });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+    navigator.serviceWorker.register('/shift-and-shutter/sw.js').then(reg => {
+      reg.update();
+    }).catch(() => {});
   });
 }
 </script>
