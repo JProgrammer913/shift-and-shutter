@@ -588,14 +588,20 @@ input[type=file] { display: none; }
 .doc-btn:active, .mbtn:active, .dtb:active, .doc-add-btn:active, .doc-rem-btn:active, .attach-dl:active { opacity: .6; }
 .card-add:active { transform: none !important; }
 
-/* ---- Sync dot ---- */
+/* ---- Sync dot + button ---- */
 #sync-dot {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: #3a3a3a; transition: background .3s; flex-shrink: 0;
+  width: 9px; height: 9px; border-radius: 50%;
+  background: #3a3a3a; transition: background .4s; flex-shrink: 0;
 }
 #sync-dot.syncing { background: var(--copper); }
 #sync-dot.synced  { background: #4caf50; }
 #sync-dot.error   { background: #e53935; }
+#sync-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--mid); font-size: 15px; padding: 2px 4px; line-height: 1;
+  opacity: .7; transition: opacity .2s;
+}
+#sync-btn:hover { opacity: 1; color: var(--copper); }
 
 /* ---- View / edit mode ---- */
 #detail.view-mode .doc-topbar { opacity: 0; pointer-events: none; height: 0; overflow: hidden; border: none; }
@@ -620,6 +626,7 @@ input[type=file] { display: none; }
     <span id="logo">Shift &amp; Shutter</span>
     <span id="logo-sub">Gear Vault</span>
   </div>
+  <button id="sync-btn" title="Pull latest from cloud" onclick="syncFromCloud()">↻</button>
   <span id="sync-dot" title="Sync status"></span>
 </div>
 
@@ -1508,6 +1515,34 @@ function ctxDelete(){
   if(currentView.type==="home")renderHome();else renderCat(currentView.id);
   toast("Deleted");hideCtx();
 }
+
+async function syncFromCloud(){
+  const dot=document.getElementById("sync-dot");
+  dot.className="syncing";
+  try{
+    const {data:row,error}=await _sb.from('gear_data').select('data').eq('id','vault').single();
+    if(!error&&row&&row.data){
+      data=row.data;
+      try{localStorage.setItem("ss-v5",JSON.stringify(data))}catch{}
+      updateStats();
+      if(currentView.type==="home")renderHome();
+      else if(currentView.type==="cat")renderCat(currentView.id);
+      dot.className="synced";
+      toast("Synced from cloud");
+    } else {
+      dot.className="error";
+      toast("Sync failed — no cloud data");
+    }
+  }catch(e){
+    dot.className="error";
+    toast("Sync failed");
+  }
+  setTimeout(()=>{ dot.className=""; },3000);
+}
+
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="visible") syncFromCloud();
+});
 
 _loadData().then(d=>{ data=d; updateStats(); navigate({type:"home"}); });
 
