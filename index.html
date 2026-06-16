@@ -207,6 +207,8 @@ body {
 .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--copper); opacity: .7; display: inline-block; flex-shrink: 0; }
 .dot.w { background: var(--dim); opacity: 1; }
 .c-cost { font-size: 10px; color: var(--dim); padding-left: 39px; }
+.c-tags { display: flex; flex-wrap: wrap; gap: 3px; padding: 5px 0 2px 39px; }
+.c-tag { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; font-size: 9px; padding: 1px 7px; color: #666; }
 
 .card-add {
   background: transparent;
@@ -673,6 +675,18 @@ input[type=file] { display: none; }
       <div class="color-palette" id="color-palette"></div>
     </div>
     <div class="doc-tb-group">
+      <select id="font-size-sel" class="dtb" style="width:58px;cursor:pointer" onchange="applyFontSize(this.value)">
+        <option value="">Size</option>
+        <option value="1">Tiny</option>
+        <option value="2">Small</option>
+        <option value="3">Normal</option>
+        <option value="4">Large</option>
+        <option value="5">XL</option>
+        <option value="6">XXL</option>
+        <option value="7">Max</option>
+      </select>
+    </div>
+    <div class="doc-tb-group">
       <label class="dtb dtb-img" style="cursor:pointer">
         <input type="file" id="doc-img-input" accept="image/*" multiple/>Images
       </label>
@@ -762,6 +776,7 @@ input[type=file] { display: none; }
 <div id="ctx-menu">
   <div class="ctx-item" onclick="ctxRename()">✏️ Rename</div>
   <div class="ctx-item" onclick="ctxChangeIcon()">🖼 Change icon</div>
+  <div class="ctx-item" id="ctx-stats-toggle" onclick="ctxToggleStats()" style="display:none">📊 Toggle gear stats</div>
   <div class="ctx-sep"></div>
   <div class="ctx-item danger" id="ctx-delete" onclick="ctxDelete()">🗑 Delete</div>
 </div>
@@ -875,10 +890,16 @@ function toast(msg){
   clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1800);
 }
 
+function itemInStatsDir(item){
+  const cat=data.categories.find(c=>c.id===item.categoryId);
+  if(!cat)return true;
+  const dir=data.directories.find(d=>d.id===cat.parentId);
+  return !dir||dir.statsEnabled!==false;
+}
 function updateStats(){
-  const owned=data.items.filter(i=>!i.wishlist).length;
+  const owned=data.items.filter(i=>!i.wishlist&&itemInStatsDir(i)).length;
   const wish=data.items.filter(i=>i.wishlist).length;
-  const cost=data.items.filter(i=>!i.wishlist).reduce((s,i)=>s+(Number(i.cost)||0),0);
+  const cost=data.items.filter(i=>!i.wishlist&&itemInStatsDir(i)).reduce((s,i)=>s+(Number(i.cost)||0),0);
   document.getElementById("s-owned").textContent=owned;
   document.getElementById("s-wish").textContent=wish;
   document.getElementById("s-cost").textContent="$"+cost.toLocaleString();
@@ -980,6 +1001,8 @@ function renderCat(id){
       const dc=item.wishlist?"dot w":"dot";
       const sl=item.wishlist?"Wishlist":(item.status||"Owned");
       const ch=item.cost>0?`<div class="c-cost">$${Number(item.cost).toLocaleString()}</div>`:"";
+      const tagHtml=(item.tags||[]).slice(0,4).map(t=>`<span class="c-tag">${t}</span>`).join('');
+      const tagRow=tagHtml?`<div class="c-tags">${tagHtml}</div>`:'';
       h+=`<div class="card" style="gap:8px" oncontextmenu="showCtx(event,'item','${item.id}')">
         <div class="card-row">
           <div class="c-icon" onclick="uploadItemIcon(event,'${item.id}')">${ic}</div>
@@ -987,7 +1010,7 @@ function renderCat(id){
             <div class="c-name" style="font-size:12px">${item.name}</div>
             <div class="c-sub"><span class="${dc}"></span>${sl}</div>
           </div>
-        </div>${ch}</div>`;
+        </div>${tagRow}${ch}</div>`;
     });
   }
   h+=`<div class="card card-add" onclick="openModal('${isDir?"addCat":"addItem"}','${id}')"><span class="add-plus">+</span><span class="add-lbl">${isDir?"New category":"New item"}</span></div></div>`;
@@ -1087,20 +1110,6 @@ function openItem(id){
     e.target.value="";
   };
 
-  // attach input
-  const attachInput=document.getElementById("attach-input");
-  attachInput.onchange=e=>{ Array.from(e.target.files).forEach(addAttachment); e.target.value=""; };
-
-  // drop zone drag-over styling
-  const dz=document.getElementById("attach-dropzone");
-  dz.addEventListener("dragover",e=>{ e.preventDefault(); dz.classList.add("drag-over"); });
-  dz.addEventListener("dragleave",()=>dz.classList.remove("drag-over"));
-  dz.addEventListener("drop",e=>{
-    e.preventDefault(); dz.classList.remove("drag-over");
-    Array.from(e.dataTransfer.files).forEach(addAttachment);
-  });
-
-  renderAttachments(item.attachments||[]);
   setupImgInteraction();
   enterViewMode();
 }
@@ -1289,6 +1298,13 @@ function setupImgInteraction(){
   ed.querySelectorAll("img").forEach(img=>{ img.draggable=true; });
 }
 
+function applyFontSize(size){
+  if(!size)return;
+  const ed=document.getElementById("doc-editor");
+  ed.focus(); document.execCommand("fontSize",false,size);
+  document.getElementById("font-size-sel").value="";
+}
+
 // ---- Color picker ----
 const COLORS=["#ffffff","#d0d0d0","#888888","#444444","#222222","#000000",
   "#ff4444","#ff8c00","#ffd700","#66bb6a","#42a5f5","#ab47bc",
@@ -1450,6 +1466,13 @@ function showCtx(e,type,id){
   const menu=document.getElementById("ctx-menu");
   const del=document.getElementById("ctx-delete");
   del.style.display=type==="dir"?"none":"flex";
+  const statsToggle=document.getElementById("ctx-stats-toggle");
+  if(type==="dir"){
+    const dir=data.directories.find(d=>d.id===id);
+    const on=dir?.statsEnabled!==false;
+    statsToggle.textContent=(on?"✅":"⬜")+" Count in gear stats";
+    statsToggle.style.display="flex";
+  } else { statsToggle.style.display="none"; }
   menu.classList.add("show");
   const x=Math.min(e.clientX,window.innerWidth-180);
   const y=Math.min(e.clientY,window.innerHeight-140);
@@ -1489,6 +1512,13 @@ function ctxChangeIcon(){
       toast("Icon updated");
     };r.readAsDataURL(f);inp.value="";
   };inp.click();hideCtx();
+}
+function ctxToggleStats(){
+  if(!ctxTarget||ctxTarget.type!=="dir")return;
+  const id=ctxTarget.id;
+  data.directories=data.directories.map(d=>d.id===id?{...d,statsEnabled:d.statsEnabled===false}:d);
+  persist();updateStats();hideCtx();
+  toast((data.directories.find(d=>d.id===id).statsEnabled===false?"Excluded from":"Included in")+" gear stats");
 }
 function ctxDelete(){
   if(!ctxTarget)return;
