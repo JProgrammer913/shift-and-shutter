@@ -674,17 +674,10 @@ input[type=file] { display: none; }
       <button class="dtb" id="color-btn" onmousedown="toggleColorPalette(event)">A<span id="color-btn-bar"></span></button>
       <div class="color-palette" id="color-palette"></div>
     </div>
-    <div class="doc-tb-group">
-      <select id="font-size-sel" class="dtb" style="width:58px;cursor:pointer" onchange="applyFontSize(this.value)">
-        <option value="">Size</option>
-        <option value="1">Tiny</option>
-        <option value="2">Small</option>
-        <option value="3">Normal</option>
-        <option value="4">Large</option>
-        <option value="5">XL</option>
-        <option value="6">XXL</option>
-        <option value="7">Max</option>
-      </select>
+    <div class="doc-tb-group" style="gap:2px">
+      <button class="dtb" style="padding:0 7px" onmousedown="e=>{e.preventDefault()}" onclick="changeFontSize(-1)">−</button>
+      <input id="font-size-inp" type="number" min="6" max="96" value="14" class="dtb" style="width:44px;text-align:center;padding:0 4px" onchange="applyFontSizePx(this.value)"/>
+      <button class="dtb" style="padding:0 7px" onclick="changeFontSize(1)">+</button>
     </div>
     <div class="doc-tb-group">
       <label class="dtb dtb-img" style="cursor:pointer">
@@ -721,6 +714,10 @@ input[type=file] { display: none; }
               <div class="doc-field">
                 <div class="doc-fl">Cost ($)</div>
                 <input class="doc-fi" id="d-cost" type="number" placeholder="0"/>
+              </div>
+              <div class="doc-field">
+                <div class="doc-fl">Brand</div>
+                <input class="doc-fi" id="d-brand" placeholder="e.g. Canon, Sony…"/>
               </div>
             </div>
           </div>
@@ -1062,6 +1059,7 @@ function openItem(id){
   document.getElementById("d-name").value=item.name;
   document.getElementById("d-status").value=item.wishlist?"Wishlist":(item.status||"Owned");
   document.getElementById("d-cost").value=item.cost||"";
+  document.getElementById("d-brand").value=item.brand||"";
 
   const ph=document.getElementById("d-photo");
   ph.innerHTML=item.image
@@ -1072,10 +1070,7 @@ function openItem(id){
   it.innerHTML=item.icon?`<img src="${item.icon}" alt=""/>`:`<span id="icon-emoji">${cat?.emoji||"📦"}</span>`;
 
   document.getElementById("doc-editor").innerHTML=item.notes||"";
-  renderSpecs(item.specs||[]);
   renderTags(item.tags||[]);
-  renderPresets(item.presets||[]);
-  renderLinks(item.links||[]);
 
   document.getElementById("photo-input").onchange=e=>{
     const f=e.target.files?.[0];if(!f)return;
@@ -1189,6 +1184,7 @@ function saveItem(silent){
     status:document.getElementById("d-status").value,
     wishlist:document.getElementById("d-status").value==="Wishlist",
     cost:Number(document.getElementById("d-cost").value)||0,
+    brand:document.getElementById("d-brand").value.trim(),
     notes:document.getElementById("doc-editor").innerHTML,
     attachments:getItem().attachments||[]
   });
@@ -1298,11 +1294,20 @@ function setupImgInteraction(){
   ed.querySelectorAll("img").forEach(img=>{ img.draggable=true; });
 }
 
-function applyFontSize(size){
-  if(!size)return;
+function applyFontSizePx(px){
+  px=Math.min(96,Math.max(6,parseInt(px)||14));
+  document.getElementById("font-size-inp").value=px;
   const ed=document.getElementById("doc-editor");
-  ed.focus(); document.execCommand("fontSize",false,size);
-  document.getElementById("font-size-sel").value="";
+  ed.focus();
+  const sel=window.getSelection();
+  if(sel&&sel.rangeCount&&!sel.isCollapsed){
+    document.execCommand("fontSize",false,"7");
+    ed.querySelectorAll('font[size="7"]').forEach(f=>{f.removeAttribute("size");f.style.fontSize=px+"px";});
+  }
+}
+function changeFontSize(delta){
+  const inp=document.getElementById("font-size-inp");
+  applyFontSizePx((parseInt(inp.value)||14)+delta*2);
 }
 
 // ---- Color picker ----
